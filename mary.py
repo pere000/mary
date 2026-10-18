@@ -21,7 +21,11 @@ import urllib.request
 import webbrowser
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+# A PyInstaller build runs from a temp folder, so use the executable's own folder.
+if getattr(sys, "frozen", False):
+    ROOT = os.path.dirname(os.path.abspath(sys.executable))
+else:
+    ROOT = os.path.dirname(os.path.abspath(__file__))
 APP = "thelady/music.html"
 MAX_BYTES = 10 * 1024 * 1024
 TIMEOUT = 20
@@ -119,6 +123,13 @@ class Handler(SimpleHTTPRequestHandler):
         sys.stderr.write("  %s\n" % (fmt % args))
 
 
+def fail(message):
+    print(message)
+    if getattr(sys, "frozen", False) and sys.stdin and sys.stdin.isatty():
+        input("Press Enter to close...")
+    sys.exit(1)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Run the Mary music app locally.")
     parser.add_argument("--port", type=int, default=8080)
@@ -128,12 +139,12 @@ def main():
     if sys.version_info < (3, 8):
         sys.exit("Python 3.8 or newer is required. Get it from https://www.python.org/downloads/")
     if not os.path.isfile(os.path.join(ROOT, APP)):
-        sys.exit("Cannot find %s next to mary.py. Keep mary.py in the folder that contains 'thelady'." % APP)
+        fail("Cannot find %s next to this program. Keep it in the folder that contains 'thelady'." % APP)
 
     try:
         server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
     except OSError:
-        sys.exit("Port %d is busy. Try: python mary.py --port 9000" % args.port)
+        fail("Port %d is busy. Try again with: --port 9000" % args.port)
 
     url = "http://localhost:%d/%s" % (args.port, APP)
     print("Mary is running at:\n  %s\nPress Ctrl+C to stop.\n" % url)

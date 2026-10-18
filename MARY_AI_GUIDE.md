@@ -71,9 +71,13 @@ Details:
 | 2B. PHP built-in server | `php -S localhost:8000` in the repo root | Yes (`tace-fetch.php`) | PHP |
 | 2C. Any server you own (Apache, nginx, ...) | serve the repo root | Yes if PHP is available for `tace-fetch.php` | server + PHP |
 | 3. Docker/Podman image | see section 7 | Yes | Docker or Podman |
+| 3b. Ready-made download (no Python/git/PHP) | unzip `Mary-<windows|linux|macos>.zip` from the GitHub Releases page, run `mary.exe` (Windows) or `./mary` (Linux/macOS) | Yes (same built-in proxy) | a browser |
 | 4. Published copy on surge.sh (or any web host you upload the folders to, at your own risk) | see section 6 | Direct fetch only; **no proxy** (static host) | Node.js |
 
 URLs once running: `http://localhost:8080/thelady/music.html` (Python/Docker) or `http://localhost:8000/thelady/music.html` (PHP).
+
+### Ready-made downloads (`mary.exe`)
+`.github/workflows/release.yml` builds, with PyInstaller, a single-file `mary` program for Windows, Linux and macOS and zips each next to the `thelady` folder (`Mary-windows.zip`, `Mary-linux.zip`, `Mary-macos.zip`). They are attached to a GitHub Release when a tag such as `v1.0` is pushed (`git tag v1.0 && git push origin v1.0`), or built on demand with the workflow's "Run workflow" button. Users unzip and double-click `mary.exe` (Windows) or run `./mary` (Linux/macOS; may need `chmod +x mary`). The program looks for `thelady` **next to itself**. The files are unsigned: Windows SmartScreen ("More info" → "Run anyway") and macOS Gatekeeper (right-click → Open) may warn, and some antivirus tools flag PyInstaller programs. Same options as `mary.py`: `--port N`, `--no-browser`.
 
 ### `mary.py`
 - Serves the repo folder on `127.0.0.1:8080`, redirects `/` to `/thelady/music.html`, opens the browser.
@@ -87,7 +91,7 @@ URLs once running: `http://localhost:8080/thelady/music.html` (Python/Docker) or
 
 ## 5. Installation (step order)
 
-Requirements: **git** (always) and a way to serve the app (Python, PHP, or your own server). Docker/Podman is optional but recommended.
+Easiest route: download the ready-made zip (section 4, row 3b) and skip steps 1-6. Otherwise requirements: **git** (always) and a way to serve the app (Python, PHP, or your own server). Docker/Podman is optional but recommended.
 
 1. **Check git:** `git --version`.
 2. **Install git** if missing. Windows: `winget install Git.Git` (or git-scm.com). Debian/Ubuntu: `sudo apt install git`. Fedora: `sudo dnf install git`. Arch: `sudo pacman -S git`. macOS: `xcode-select --install` or `brew install git`.
