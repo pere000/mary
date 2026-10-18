@@ -56,6 +56,14 @@ The TACE governance documents are **not** in this repo; they live in https://git
 
 ## 4. Ways to run Mary
 
+After installation, Mary runs in the browser in one of these ways:
+
+1. Directly from `thelady/music.html` (very restricted: local audio files only).
+2. From a local web server of the user's choice: **A.** Python (`mary.py`, the default in the install steps), **B.** the PHP built-in web server (`php -S`), or **C.** any server the user personally possesses.
+3. From a non-profit public HTML server based on surge.sh (the app folders can also be uploaded to any web server, at the user's own risk).
+
+Details:
+
 | Option | Command | Remote playlists (`?source=https://...`) | Needs |
 |---|---|---|---|
 | 1. Open the file directly | double-click `thelady/music.html` | No. Very restricted: local audio via **Load/Stop** only | a browser |
@@ -63,7 +71,7 @@ The TACE governance documents are **not** in this repo; they live in https://git
 | 2B. PHP built-in server | `php -S localhost:8000` in the repo root | Yes (`tace-fetch.php`) | PHP |
 | 2C. Any server you own (Apache, nginx, ...) | serve the repo root | Yes if PHP is available for `tace-fetch.php` | server + PHP |
 | 3. Docker/Podman image | see section 7 | Yes | Docker or Podman |
-| 4. Published copy on surge.sh | see section 6 | Direct fetch only; **no proxy** (static host) | Node.js |
+| 4. Published copy on surge.sh (or any web host you upload the folders to, at your own risk) | see section 6 | Direct fetch only; **no proxy** (static host) | Node.js |
 
 URLs once running: `http://localhost:8080/thelady/music.html` (Python/Docker) or `http://localhost:8000/thelady/music.html` (PHP).
 
@@ -83,7 +91,7 @@ Requirements: **git** (always) and a way to serve the app (Python, PHP, or your 
 
 1. **Check git:** `git --version`.
 2. **Install git** if missing. Windows: `winget install Git.Git` (or git-scm.com). Debian/Ubuntu: `sudo apt install git`. Fedora: `sudo dnf install git`. Arch: `sudo pacman -S git`. macOS: `xcode-select --install` or `brew install git`.
-3. **Clone:** `git clone https://github.com/pere000/mary.git` then `cd mary`. *(No GitHub account is needed to clone a public repo. The repo must exist and be public; at the time of writing it had not yet been created.)*
+3. **Clone:** `git clone https://github.com/pere000/mary.git` then `cd mary`. *(No GitHub account is needed to clone a public repo. The repo is public at https://github.com/pere000/mary. Alternative without git: "Code → Download ZIP" on that page.)*
 4. *(Optional)* Publish your own copy to surge.sh (section 6).
 5. **Check/install Python** (`python --version` or `python3 --version`, 3.8+). Windows: `winget install Python.Python.3.12` or python.org (tick "Add python.exe to PATH"). Linux: `sudo apt install python3`. macOS: `brew install python`.
 6. **Run:** `python mary.py` (Windows) or `python3 mary.py`.
