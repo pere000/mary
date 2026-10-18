@@ -1,0 +1,9 @@
+#EXTM3U
+#EXTINF:0,WWW.MOUSIKOLEOFOREIO.NET
+http://webinternetradio.eu:8723/stream2_autodj
+#EXTINF:0,Default Stream
+http://s1.voscast.com:11480/stream
+#EXTINF:0,The Blues Guitar Place
+http://login.webinternetradio.com:1080/stream
+#EXTINF:0,Blues Room
+http://cast6.my-control-panel.com:9048/autodj

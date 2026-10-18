@@ -1,0 +1,4 @@
+#!/bin/bash
+
+
+pandoc Common_Intelligibility.html -f html -t gfm -o Common_Intelligibility.md

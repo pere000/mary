@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Connects to Google's font delivery servers -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- This line tells the browser to download Eduardo Tunni's Merienda font -->
+  <link href="https://googleapis.com" rel="stylesheet">
+
+
+<style>
+*, *:before, *:after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+html {
+  /* Forces both browsers to baseline at exactly 16px */
+  font-size: 16px;
+    /* Standardizes rendering on macOS/iOS devices */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Forces crisp subpixel layouts across modern OS systems */
+  text-rendering: optimizeLegibility;
+    line-height: 1.5;         /* Eliminates default engine line calculations */
+  letter-spacing: -0.01em;  /* Keeps spacing tight and uniform */
+}
+
+body {
+  font-family: 'IBM Plex Serif';
+  font-size: 22px; /* */
+}
+
+/*local*/
+@font-face {
+font-family: "Love Light";
+src: url("./fonts/LoveLight-Regular.ttf") format("truetype");
+font-weight: normal;
+font-style: normal;
+}
+
+.loveLight {
+font-family: "Love Light", sans-serif;
+font-size:28px;
+letter-spacing: 1.5px;
+color:#BF9903;
+}
+.normal {
+  font-family: 'IBM Plex Serif';
+  padding:10px 10px 0 20px;
+  font-size: 22px; /* */
+  text-align:justify;
+  text-indent: 60px;
+  
+}
+
+        table {
+            width: 50%;
+            border-collapse: collapse;
+            font-family: Arial, sans-serif;
+            margin: 20px 0;
+            font-size:14px;
+        }
+        th, td {
+            border: 1px solid #dddddd;
+
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+        p, div {
+        text-align:jusitfy;
+        }
+
+        .p {
+        margin: 0 0 20px 0;
+        }
+        .marg {margin: 0 40px 0 20px;text-align:justify;}
+
+
+    </style>
+	<script>
+
+	    </script>
+</head>
+<body>
+<div class='loveLight' style='width:95%;text-align:center;line-height:0.7;text-align:center;font-size:100px;color:#BF9903; text-shadow: 1px 1px 0 #8B6914, 2px 2px 3px rgba(0,0,0,.35);padding-top:50px;'>
+<img src='https://diaspora.psyco.fr/uploads/images/070cb9f6d1ddbe8723f2.webp' style='width:100%;'>
+</div>
+
+<div class='normal' style=''>
+The application is built entirely using HTML, CSS, and JavaScript, allowing it to be hosted on any server of your choice (externally via http:// or https://, or on a local server). With minor adjustments to the JavaScript code, you can also run it directly on your desktop computer. The app features two distinct menus for different purposes: the "Lyric Menu" and the "Prose Menu." The "Lyric/Prose Resource" field is designed to hold a link to an external resource that will open in a new tab. You could by pass the music.html main page to access some specific record, for example, in this way:<br><br>
+<pre style="text-align:center;"><i>http://domain/music.html?source=blues_final.m3u#7 (#7 the record index in the playlist)</i></pre>
+
+</div>
+
+<div class='normal' style=''>
+Upon loading the page, you will access the server domain, in this case '<i>https://pretace.surge.sh</i>'. I recommend the surge.sh provider to anyone who decides to have a personal copy of this application to access from anywhere on the Internet (<a href='https://surge.sh/' target='_blank'>Use Free 'surge' Hosting</a>). As you may have noticed, the page loads a predetermined repertoire contained in a plain text CSV file: "<i>howToUse.csv</i>". The first audio file in that CSV list starts playing immediately or after playing the "<i>Play</i>" button; it's a YouTube video which you can access via a new tab by clicking to the right of the '<b>URL/file</b>' field. In the field destined to show a lyric by clicking the musical score icon at the end of the field box you can acces the HowToUseThis App page. You can always use this CSV by clicking on '<b style='color:navy;'>How To Use this resource (CSV)</b>' in the right-hand column.
+</div>
+
+<div class='normal' style=''>
+You can use a local server, such as the "<a href='' target='_blank'>built-in PHP web server</a>" (<i>ask an AI how to use it</i>). You will be able to access it via your browser's address bar—for example,<br>
+
+<pre style="text-align:center;"><i>http://localhost:8000/book/music.html</i></pre> However, if you use an online server, such as (<a href='https://surge.sh/' target='_blank'>the free hosting service "surge"</a>), the address would look something like this:
+
+<pre style="text-align:center;"><i>https://yourProjectName.surge.sh/book/music.html</i></pre> In any case, you can always append the specific file you wish to load and play to the URL. For example, the file t1Omaha.csv:
+
+<div style="text-align:center;margin-top:5px;">
+	<pre style="text-align:center;"><i>https://yourProjectName.surge.sh/book/music.html?source=https://yourProjectName.surge.sh/book/t1Omaha.csv a m3u playlist, or a YouTube url</i><br><span style='font-size:16px;color:navy;'>(<i>The browser prevents playback of http://radiostation and requires HTTPS; a message will appear asking whether you wish to play it or cancel to select another station.</i>)</span></pre>
+	
+</div>
+<br>
+When running the application on localhost, you can access a CSV/m3u file in several ways. You can use "<i>Stop → Load → select the CSV/m3u file → Play</i>" or paste, for example, t1Omaha.csv into the URL/file field and press "<i>Play</i>". You can also enter the full local URL:<br><br>
+
+														<pre style="text-align:center;"><i>http://localhost:8000/book/t1Omaha.csv</i>
+<span style='font-size:16px;color:navy;'>(<i>This is usually unnecessary when loading the file directly from the application, since t1Omaha.csv is sufficient, <br>but the complete URL can be useful when the CSV/M3U is referenced from another locally hosted page or application.</i>)</span></pre>
+<br>
+The URL/file field can likewise contain a remote URL, for example:<br>
+
+														<pre style="text-align:center;"><i>https://yourProjectName.surge.sh/book/t1Omaha.csv</i></pre>
+or a YouTube URL. However, a page loaded from a remote server, such as "<i>https://yourProjectName.surge.sh/book/music.html</i>", cannot use the URL or file field to have the remote page fetch a resource from your local server; for example:<br>
+
+														<pre style="text-align:center;"><i>http://localhost:8000/book/t1Omaha.csv</i></pre>
+This does not make the localhost file available to the remotely hosted application. In that situation, use "<i>Stop → Load →select the CSV/m3u file → Play</i>" to load the local file directly and click "<i>Play</i>".
+</div>
+<br>
+<div class='normal' style=''>
+The "<i>Lyric</i>" field is located below the "<b>URL/file</b>" field. Here, you should enter the "<i>HTML Page url</i>" or any link you wish to open in a new tab when clicking the icon next to the field. It is straightforward and there is not much else to add—much like with the "<b>Author</b>" and "<b>Title</b>" fields—except that all the fields are editable, which makes sense given what we will see later regarding how data is saved to the database.
+</div>
+
+<div style='width:95%;text-align:center;padding-top:20px;'>
+<img src='https://diaspora.psyco.fr/uploads/images/1f45b5b068db97b3f9e6.webp' style='width:30%;'>
+<span style='display:block;font-size:14px;'>Fig. 1</span>
+</div>
+
+<div style='margin-left:80px;'>
+	<ul style='list-style-type: none;'>
+		<li><b style='color:navy;'>Play:</b> <b>The playlist will jump to the next csv/m3u row</b> whenever you click "Play" again. However, if you click the "Load" button during playback, the song will restart, and the playlist will effectively consist solely of the song currently playing; subsequent clicks of either button will restart that song. You can select any other item appearing in the "Primary" or "Secondary" playlist, as well as any linked resource in the right-hand column.</li>
+			
+		<li><b style='color:navy;'>Stop:</b> The playback function is cancelled, the playlist, and the "URL/file" field, as well as the "Lyric/prose URL" one are cleared.</li>
+		<li><b style='color:navy;'>Load:</b> You must click "Stop": A. before clicking the "Load" button or B. to paste some new URL with the filename to play; otherwise, the playlist will restart.<b><i> If you paste an Internet URL containing a reference to a playlist, that playlist will completely replace the contents of the database</i></b>. During playback, clicking the button restarts the current playback and limits the playlist to the single song currently playing.</li>	
+				
+		<li ><b style='color:navy;'>Save:</b> The contents of all fields are saved to the database, but if the checkbox next to the button is not checked, the song and the associated playlist will be saved instead of just the uploaded song.<br>
+          <b style='color:maroon;'>You can make your own CSV Playlist and save it to your hard drive</b>. All fields, such as 'Author/Tags', etc. can be used to create a CSV text independently of the kind of data you insert into them. You have to take into account the use you want to give to the CSV file; in the case of this music App the fields 'Audio URL' and 'Lyric, prose, etc.' are used to be linked by the buttons placed at the right of the field, depending of the field content that operation can generate errors. How to proceed:<br>
+
+          <p style='padding:8px 0 0 40px;'>First, verify that the database is actually empty by clicking the "EXPORT PLAYLIST" button; in any case, you can clear the database by clicking "DELETE DB". Check the "SONG" box to save one record at a time. After filling in the form fields located in the central column, click the "SAVE" button. Once you have finished entering all the records into the database, you can click "EXPORT PLAYLIST" and save the result to your hard drive. If you wish to create a music CSV file, follow the same procedure, but fill the "Audio/Url" field with a valid audio link and the "Lyric, prose, etc." field with a valid destination for a standard URL link. Fill the form fields:</p>
+          <p style='padding:8px 0 0 80px;'><b style='color:maroon;'>Author/Tags</b>:<br>Puede utilizar el campo estándar «Autor», pero también puede introducir cualquier dato que desee asociar a este registro. Podría utilizar ambos: un título y etiquetas separadas por comas; el título puede servir como etiqueta única o como una etiqueta con una frecuencia de repetición previsiblemente baja.</p>
+          <p style='padding:8px 0 0 80px;'><b style='color:maroon;'>Title/String</b>:<br>Act with the same generosity as before.</p>
+          <p style='padding:8px 0 0 80px;'><b style='color:maroon;'>Audio/Url</b>:<br>Web content must use http:// or https:// instead of file:///. However, if you import a local CSV file via the LOAD button, you can reference audio files in any local folder by using their relative paths (without the file:/// prefix).</p>
+          <p style='padding:8px 0 0 80px;'><b style='color:maroon;'>Lyric, prose, etc.</b>:<br>Any text entered here will be treated as a web link (http://, https://, or a local server link) when you click the button on the right. If the link is invalid, it will open an error page in a new tab.</p>
+		</li>
+		<li><b style='color:navy;'>Export Playlist:</b> The content of the DB is loaded into a new tab for downloading as a CSV file.</li>			
+			
+		<li><b style='color:navy;'>Delete DB:</b> It's self-explanatory.</li><br>
+		<b style='color:red;'>Note</b>: The audio player icons control the audio, the others control the files.
+	</ul>
+</div>
+
+
+<div style='width:99%;text-align:center;padding-top:20px;'>
+<img src='https://diaspora.psyco.fr/uploads/images/89a7bd88d766241cc038.webp' style='width:30%;'>
+<span style='display:block;font-size:14px;'>Fig. 2</span>
+</div>
+
+<div class='normal' style=''>
+"Fig. 2" shows four rows. In the first is located the rolldown menu to select records of the "<i>primary or main playlist</i>", if some of its records contains an aditional playlist it will be placed in the "<i>secondary playlist</i>" in the second row.
+</div>
+
+<div class='normal' style=''>
+The third row shows some metadata corresponding to the loaded resource. The row at the is used for messaging of success or failure. While the black box below shows some data about the javascript executed.
+</div>
+<br>
+<div style='margin-left:80px;'>
+<b style="color:navy;">The Right Column</b>
+<br>
+Fixed at its top you will find:
+<ul style='list-style-type: none;margin-left:40px;'>
+<li>1. HowToUse this App.</li>
+<li>2. Series In Memoriam of Normandy Heroes.</li>
+</ul>
+</div>
+
+<div style='margin:20px 0 0 80px;margin-left:120px;'>
+	<ul style='list-style-type: none;'>
+		<li style=''><b style='color:maroon'>Lyric Mode</b></li>
+		<li>1. Internet Radio with two options.</li>
+		<li>2. A list of mediterranean songs.</li>
+		<li>&nbsp;</li>
+		<li style='margin-left:40px;'><b style='color:navy;'>Friends:</b><br>1. Some interesting user.</li>
+		<li>&nbsp;</li>
+		<li>&nbsp;</li>
+		<li><b style='color:maroon'>Prose Mode</b></li>
+		<li>The same as in the case of Lyric but with doc contents instead lyric themes.</li>
+		<li>&nbsp;</li>
+	</ul>
+</div>
+<br>
+<h3 class='normal' style='color:navy;'><b>Creating a CSV Playlist</b></h3>
+<div style='padding-left:80px;'>
+Use a plain text editor. A CSV "<i>Playlist</i>" file is a collection of lines called records delimited by a vertical bar (|). The first line should be always the following:
+
+<pre style="text-align:center;"><i>Author|Title|urlFileName|urlLyric</i></pre>
+
+<br>
+<b style='color:maroon;font-weight:bold;'>
+YouTube Playlist</b>:
+Use a YouTube URL that contains a playlist; for example, "<i>https://www.youtube.com/watch?v=1p_FsT0G5VA&list=PLZWMYVQySf1A&index=1</i>" 
+<br><br>
+<pre style="text-align:center;font-size:16px;"><i>&list=PLZWMYVQySf1A is the playlist, and if the series starts with "<b>RD</b>" the playlist will be not loaded—
+you need that the series to start with "<b>PL</b>". Basically, it should be https://www.youtube.com/watch?v=1p_FsT0G5VA</i></pre>
+<br>
+Stop the audio player and paste the YouTube playlist URL into the "<i>Url/field</i>" field; check the "<i>Secondary Playlist</i>" drop-down menu to view the list. Click the "<i>Play</i>" button to load and play it, then click "<i>Export playlist</i>" to download the CSV file.<br><br>
+<b style='color:maroon;font-weight:bold;'>HowTo download a <i style='color:red'>RD</i> youtube playlist, such us "<i style='color:red'>RD</i>JG6kgKiMbsg"</b>:<br>
+Use the bash command<br><br>
+
+<pre style='font-size:16px;text-align:center;'><span style='color:navy;'">yt-dlp --flat-playlist --print "%(id)s|%(title)s|%(webpage_url)s</span>" "<b><i>https://www.youtube.com/watch?v=JG6kgKiMbsg&list=RDJG6kgKiMbsg&start_radio=1</i></b>" > <b style="color:red;">rdplaylist.csv</b></pre><br>
+
+using your https:// url. The playlist will be saved in "rdplaylist.csv". Normalize the content rows using the bash script<br><br>
+
+<pre style='font-size:16px;text-align:center;'><span style='color:navy;'">./youTube_playLists-v3.scr rdplaylist.csv</b></pre><br> 
+
+ for it to become a playable playlist. It will output your updated playlist into the "youtubeOut.csv".<br><br>
+
+
+
+<b style='color:maroon;font-weight:bold;'>
+M3U Playlist</b>:
+The "<i>M3U</i>" file format is more complex than "<i>CSV</i>", but you can convert it to "<i>CSV</i> by using the already known bash script<br><br>
+
+<pre style='font-size:16px;text-align:center;'><span style='color:navy;'">yt-dlp --flat-playlist --print "%(id)s|%(title)s|%(webpage_url)s</span>" "<b><i>https://www.youtube.com/watch?v=JG6kgKiMbsg&list=RDJG6kgKiMbsg&start_radio=1</i></b>" > <b style="color:red;">rdplaylist.csv</b></pre><br>
+
+<b style='color:maroon;font-weight:bold;'>
+Desktop playlist</b>:
+Use the sequence "Stop → Load → select the CSV/m3u file → Play".
+</div>
+<br><br><br><br>
+
+
+
+
+
+</body>
+</html>

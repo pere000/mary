@@ -1,0 +1,390 @@
+#!/usr/bin/env bash
+
+# youTube_playLists-v2.scr
+#
+# Usage:
+#   ./youTube_playLists-v2.scr 'INPUT'
+#
+# INPUT may be:
+#   1. A YouTube playlist URL
+#   2. A YouTube video URL containing &list=PLAYLIST_ID
+#   3. A CSV-style record containing such a URL
+#
+# Output:
+#   youtubeOut.csv
+#
+# Field format produced:
+#   youtube|TITLE|URL|
+#
+# The | character is reserved as the CSV field separator by the player.
+# Therefore any | occurring in a YouTube title is normalized to " - ".
+
+OUTPUT="youtubeOut.csv"
+
+if [[ $# -ne 1 ]]; then
+    echo "ERROR: Please provide a YouTube playlist, video URL, or CSV record."
+    echo
+    echo "Examples:"
+    echo "  $0 'https://www.youtube.com/playlist?list=PLZWMYVQySf1A'"
+    echo "  $0 'https://www.youtube.com/watch?v=1p_FsT0G5VA&list=PLZWMYVQySf1A'"
+    echo "  $0 'Aeoline Music - Origlio (Bells of Ticino) The Night is Full of Wonders|https://www.youtube.com/watch?v=1p_FsT0G5VA&list=PLZWMYVQySf1A'"
+    exit 1
+fi
+
+INPUT="$1"
+
+echo "Input:"
+echo "  $INPUT"
+echo
+
+# ------------------------------------------------------------
+# CSV input mode
+#
+# A CSV/TACE file may contain titles with "|" characters. The
+# player requires exactly four fields:
+#
+#   Author | Title | urlFileName | urlLyric
+#
+# Therefore, when a CSV is supplied as INPUT, locate the first
+# HTTP(S) URL after the Author/Title area. Everything before that
+# URL is reconstructed as Title; everything after it is Lyric.
+# This makes files such as celtic.csv safe even when YouTube
+# titles contain "|" characters.
+# ------------------------------------------------------------
+
+if [[ "$INPUT" =~ \.(csv)(\?.*)?$ ]]; then
+
+    CSV_INPUT="$INPUT"
+
+    if [[ ! -f "$CSV_INPUT" ]]; then
+        echo "ERROR: CSV input file does not exist:"
+        echo "  $CSV_INPUT"
+        exit 1
+    fi
+
+    echo "CSV input detected:"
+    echo "  $CSV_INPUT"
+    echo
+    echo "Normalizing CSV records..."
+
+    awk -F'|' '
+    BEGIN {
+        OFS="|"
+        errors=0
+        records=0
+    }
+
+    {
+        line=$0
+
+        # Remove UTF-8 BOM from the first line.
+        if (NR == 1)
+            sub(/^\xef\xbb\xbf/, "", line)
+
+        # Ignore blank lines.
+        if (line ~ /^[[:space:]]*$/)
+            next
+
+        # Ignore the standard TACE/CSV header.
+        if (tolower(line) ~ /^author[[:space:]]*\|[[:space:]]*title[[:space:]]*\|[[:space:]]*urlfilename([[:space:]]*\|[[:space:]]*urllyric)?[[:space:]]*$/)
+            next
+
+        n = split(line, f, "|")
+
+        if (n < 3) {
+            printf("ERROR line %d: only %d field(s); expected at least 3.\n", NR, n) > "/dev/stderr"
+            errors++
+            next
+        }
+
+        author = f[1]
+        urlIndex = 0
+
+        # Find the first URL after Author and Title.
+        for (i = 3; i <= n; i++) {
+            candidate = f[i]
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "", candidate)
+
+            if (candidate ~ /^https?:\/\//) {
+                urlIndex = i
+                url = candidate
+                break
+            }
+        }
+
+        if (urlIndex == 0) {
+            printf("ERROR line %d: no HTTP(S) URL found in the URL field area.\n", NR) > "/dev/stderr"
+            printf("       %s\n", line) > "/dev/stderr"
+            errors++
+            next
+        }
+
+        # Reconstruct Title from all fields between Author and URL.
+        title = f[2]
+        for (i = 3; i < urlIndex; i++)
+            title = title " - " f[i]
+
+        # Remaining fields belong to UrlLyric. Normally there is
+        # only one field, but join defensively if extra separators
+        # occur there too.
+        lyric = ""
+        if (urlIndex < n) {
+            lyric = f[urlIndex + 1]
+            for (i = urlIndex + 2; i <= n; i++)
+                lyric = lyric "|" f[i]
+        }
+
+        # Trim all four fields.
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", author)
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", title)
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", url)
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", lyric)
+
+        # "|" is reserved by this file format. The title has already
+        # been reconstructed, so no separator remains in it except
+        # those deliberately created by malformed input.
+        gsub(/\|/, " - ", author)
+        gsub(/\|/, " - ", title)
+
+        if (author == "" || title == "" || url == "") {
+            printf("ERROR line %d: empty required field after normalization.\n", NR) > "/dev/stderr"
+            errors++
+            next
+        }
+
+        print author, title, url, lyric
+        records++
+    }
+
+    END {
+        print "" > "/dev/stderr"
+        print "----------------------------------------" > "/dev/stderr"
+        print "CSV normalization summary" > "/dev/stderr"
+        print "----------------------------------------" > "/dev/stderr"
+        printf("Records written:  %d\n", records) > "/dev/stderr"
+        printf("Records rejected: %d\n", errors) > "/dev/stderr"
+
+        if (records == 0)
+            exit 3
+
+        if (errors > 0)
+            exit 2
+    }
+    ' "$CSV_INPUT" > "$OUTPUT"
+
+    STATUS=$?
+
+    echo
+    if [[ $STATUS -eq 0 ]]; then
+        echo "SUCCESS"
+        echo "Output file: $OUTPUT"
+        echo "Records:     $(wc -l < "$OUTPUT")"
+    else
+        echo "ERROR: CSV normalization encountered errors."
+        echo "Output file: $OUTPUT"
+        echo "Exit status: $STATUS"
+    fi
+
+    exit $STATUS
+fi
+
+# ------------------------------------------------------------
+# YouTube URL / CSV-record input mode
+# ------------------------------------------------------------
+
+# Extract the YouTube URL.
+# If the input contains |, take everything after the last |.
+if [[ "$INPUT" == *"|"* ]]; then
+    URL="${INPUT##*|}"
+else
+    URL="$INPUT"
+fi
+
+# Remove surrounding whitespace.
+URL="$(printf '%s' "$URL" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+
+echo "Detected URL:"
+echo "  $URL"
+echo
+
+# ------------------------------------------------------------
+# Identify the playlist.
+# ------------------------------------------------------------
+
+if [[ "$URL" == *"youtube.com/playlist?list="* ||
+      "$URL" == *"youtube.com/playlist/"* ]]; then
+
+    PLAYLIST_URL="$URL"
+
+elif [[ "$URL" == *"youtube.com/watch?"* && "$URL" == *"list="* ]]; then
+
+    PLAYLIST_ID="${URL#*list=}"
+    PLAYLIST_ID="${PLAYLIST_ID%%&*}"
+
+    if [[ -z "$PLAYLIST_ID" ]]; then
+        echo "ERROR: A playlist reference was detected, but the playlist ID is empty."
+        exit 1
+    fi
+
+    PLAYLIST_URL="https://www.youtube.com/playlist?list=$PLAYLIST_ID"
+
+elif [[ "$URL" == *"youtu.be/"* && "$URL" == *"list="* ]]; then
+
+    PLAYLIST_ID="${URL#*list=}"
+    PLAYLIST_ID="${PLAYLIST_ID%%&*}"
+
+    if [[ -z "$PLAYLIST_ID" ]]; then
+        echo "ERROR: A playlist reference was detected, but the playlist ID is empty."
+        exit 1
+    fi
+
+    PLAYLIST_URL="https://www.youtube.com/playlist?list=$PLAYLIST_ID"
+
+elif [[ "$URL" == *"youtube.com/watch?"* ||
+        "$URL" == *"youtu.be/"* ]]; then
+
+    echo "ERROR: This is a YouTube video URL, but no playlist reference was found."
+    echo
+    echo "The video may belong to several playlists, so the playlist cannot"
+    echo "be determined automatically."
+    echo
+    echo "Please provide either:"
+    echo
+    echo "  • the YouTube playlist URL"
+    echo "  • a video URL containing &list=PLAYLIST_ID"
+    echo "  • your CSV record containing a URL with &list=PLAYLIST_ID"
+    echo
+    echo "Example:"
+    echo "  https://www.youtube.com/watch?v=1p_FsT0G5VA&list=PLZWMYVQySf1A"
+    exit 1
+
+else
+
+    echo "ERROR: No recognizable YouTube URL was found."
+    echo
+    echo "The supplied input was:"
+    echo "  $INPUT"
+    exit 1
+fi
+
+echo "Playlist detected:"
+echo "  $PLAYLIST_URL"
+echo
+echo "Retrieving playlist..."
+echo
+
+# ------------------------------------------------------------
+# Retrieve playlist and normalize records.
+#
+# yt-dlp deliberately returns the title followed by the URL and
+# a final empty field. Since | is the field separator, a | inside
+# a YouTube title creates additional AWK fields. Those fields are
+# reconstructed into the title and the separator is normalized to
+# " - ". This guarantees that generated records never contain | in
+# the title.
+# ------------------------------------------------------------
+
+yt-dlp --flat-playlist \
+       --print '%(title)s|https://www.youtube.com/watch?v=%(id)s|' \
+       "$PLAYLIST_URL" |
+awk -F'|' '
+{
+    # Count separators without changing the record permanently.
+    bars = gsub(/\|/, "|", $0)
+
+    # A valid generated record has at least:
+    #   TITLE | URL |
+    if (NF < 3) {
+        printf("ERROR line %d: only %d field(s); cannot identify URL.\n", NR, NF) > "/dev/stderr"
+        printf("       %s\n", $0) > "/dev/stderr"
+        errors++
+        next
+    }
+
+    # The final field must be empty because yt-dlp prints a trailing |.
+    if ($(NF) != "") {
+        printf("ERROR line %d: final field is not empty.\n", NR) > "/dev/stderr"
+        printf("       %s\n", $0) > "/dev/stderr"
+        errors++
+        next
+    }
+
+    # The field immediately before the final empty field is the URL.
+    url = $(NF-1)
+
+    if (url !~ /^https?:\/\//) {
+        printf("ERROR line %d: field before final bar is not a URL.\n", NR) > "/dev/stderr"
+        printf("       Found: [%s]\n", url) > "/dev/stderr"
+        printf("       %s\n", $0) > "/dev/stderr"
+        errors++
+        next
+    }
+
+    # Reconstruct the title. Any | that occurred inside the original
+    # YouTube title is represented by an AWK field boundary, so replace
+    # that boundary with the player-safe separator " - ".
+    title = $1
+
+    if (NF > 3) {
+        printf("WARNING line %d: %d separator(s) detected; title normalized.\n", NR, bars) > "/dev/stderr"
+
+        for (i = 2; i <= NF - 2; i++)
+            title = title " - " $i
+    }
+
+    # Normalize whitespace introduced by title reconstruction.
+    gsub(/[[:space:]]+/, " ", title)
+    sub(/^[[:space:]]+/, "", title)
+    sub(/[[:space:]]+$/, "", title)
+
+    # Defensive sanitation: the output format reserves | as a field
+    # separator. This also protects the record if yt-dlp formatting
+    # changes in the future.
+    gsub(/\|/, " - ", title)
+
+    # Remove redundant playlist/index parameters if present.
+    sub(/&list=[^|]*/, "", url)
+    sub(/&index=[^|]*/, "", url)
+
+    # Final defensive URL validation.
+    if (url ~ /\|/) {
+        printf("ERROR line %d: URL contains reserved | character.\n", NR) > "/dev/stderr"
+        printf("       Found: [%s]\n", url) > "/dev/stderr"
+        errors++
+        next
+    }
+
+    # YouTube is the source/author field used by this import pipeline.
+    print "youtube|" title "|" url "|"
+
+    records++
+}
+
+END {
+    print "" > "/dev/stderr"
+    print "----------------------------------------" > "/dev/stderr"
+    print "Playlist processing summary" > "/dev/stderr"
+    print "----------------------------------------" > "/dev/stderr"
+    printf("Records written:  %d\n", records) > "/dev/stderr"
+    printf("Records rejected: %d\n", errors) > "/dev/stderr"
+
+    if (errors > 0)
+        exit 2
+}
+' > "$OUTPUT"
+
+STATUS=$?
+
+echo
+
+if [[ $STATUS -eq 0 ]]; then
+    echo "SUCCESS"
+    echo "Output file: $OUTPUT"
+    echo "Records:     $(wc -l < "$OUTPUT")"
+else
+    echo "ERROR: Playlist processing encountered errors."
+    echo "Output file: $OUTPUT"
+    echo "Exit status: $STATUS"
+fi
+
+exit $STATUS

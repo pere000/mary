@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TACE: Reality</title>
+<style>
+  :root {
+    --bg: #f7f5f0;
+    --fg: #202020;
+    --muted: #666;
+    --line: #cfc9bd;
+    --panel: #fffdf8;
+    --accent: #5a4a78;
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: Georgia, "Times New Roman", serif;
+    line-height: 1.7;
+    text-align:justify;
+  }
+  main { max-width: 1200px; margin: 0 auto; padding: 56px 28px 80px; }
+  h1, h2, h3 { line-height: 1.2; }
+  h1 { font-size: 2.7rem; margin-bottom: .2em; }
+  h2 { margin-top: 2.2em; font-size: 1.7rem; }
+  h3 { margin-top: 1.6em; font-size: 1.25rem; }
+  .subtitle { color: var(--muted); font-size: 1.15rem; }
+  .epigraph {
+    border-left: 4px solid var(--accent);
+    padding: 16px 22px;
+    margin: 32px 0;
+    background: var(--panel);
+    font-size: 1.25rem;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 22px 26px;
+    margin: 24px 0;
+  }
+  .sequence {
+    display: grid;
+    gap: 10px;
+    margin: 26px 0;
+  }
+  .step {
+    display: grid;
+    grid-template-columns: 190px 1fr;
+    border-top: 1px solid var(--line);
+    padding: 14px 0;
+  }
+  .term { font-weight: bold; color: var(--accent); }
+  code {
+    background: #eeeae1;
+    padding: 2px 5px;
+    border-radius: 3px;
+  }
+  .formula {
+    font-family: "Courier New", monospace;
+    white-space: pre-wrap;
+    background: #eeeae1;
+    padding: 18px;
+    overflow-x: auto;
+  }
+  .note { color: var(--muted); font-size: .95rem; }
+  footer {
+    margin-top: 56px;
+    border-top: 1px solid var(--line);
+    padding-top: 20px;
+    color: var(--muted);
+    font-size: .9rem;
+  }
+  @media (max-width: 680px) {
+    .step { grid-template-columns: 1fr; }
+    .term { margin-bottom: 5px; }
+    h1 { font-size: 2.1rem; }
+  }
+  p {
+  margin: 0 0 5px 0;
+  line-height: 1.4;
+}
+</style>
+</head>
+<body>
+<main>
+  <h1 style='color:maroon;'>Markov processes: A New View in Neurosciences (Draft)</h1>
+  <p class="subtitle"><i>From N Dimensional Quantum Field to the 3-D Newotonian World</i></p>
+<main>
+<p>This article, based on the <a href='https://medium.com/@perevictor/framework-x-e1029be80147' target='_blank'>Framework X</a> (under development), seeks to move beyond the predominantly linear-causal picture often used to describe biological and neuroscientific processes: 
+<div style='width:100%;text-align:center;'>
+<b>stimulus → receptor → chain of intermediate events → final effect</b>.
+</div>
+In its place, it proposes the <b style='color:navy;'>Markovian state</b> as a unit of analysis in which the organism, its brain, and its environment are understood as a dynamically organized whole, possessing a continuously actualized relational state and its own operational boundary.</p><br>
+
+<p style="font-family: ui-monospace, Consolas, monospace; font-size: 0.9em; background-color: #f4f4f4; padding: 2px 6px; border-radius: 4px;"><b>In short, by the way:</b><br>Processes can be properly applied to physical phenomena, such as those involving Markovian states (1). Thus, we can say the Markov process is a stochastic process that satisfies the </i><b style='color:navy;'><u>Markov property</u>: <i>conditional on its present state, its future evolution is independent of its past history</i></b>. <br><br>
+<i>This is sometimes informally called “memorylessness,” although Markovianity does not imply that the system has no memory; rather, any history relevant to future evolution must be represented in the present state. In the stricter probabilistic sense, memorylessness is a special property of probability distributions, possessed by the geometric distribution in the discrete case and the exponential distribution in the continuous case.</i><p><br>
+
+
+
+<p>Thus, instead of the apparently innocent linear representation</p>
+<div style='width:100%;text-align:center;'>
+<pre>
+   Stimulus
+   ↓
+   Receptor
+   ↓
+   Neural event
+   ↓
+   Motor event
+   ↓
+   Behavior
+</pre>
+</div>
+<p>the unit of analysis therefore shifts from the isolated event to the presently actualized Markovian state:</p>
+<div style='width:100%;text-align:center;'>
+<pre>
+        <b>PRESENT MARKOVIAN STATE</b>
+        ┌──────────────────────────────┐
+        │ Brain                        │
+        │ Body                         │
+        │ Internal relations           │
+        │ Memory / present dispositions│
+        │ Environmental relations      │
+        │ Transition conditions        │
+        └──────────────────────────────┘
+        ↓
+        admissible transitions
+        ↓
+        <b>SUCCESSOR STATE</b>
+</pre>
+</div>
+<p>But this state is not necessarily a single undifferentiated block. It can contain nested Markovian states, each possessing its own organization and operational boundary while participating in the organization of the larger state. The crucial point is that the boundary is not merely a geometrical outline. It is the operational boundary that distinguishes the organization of the entity from what belongs to its environment while simultaneously permitting lawful relational exchange with that environment.</p><br>
+
+<p>Thus, instead of "<b>stimulus → response</b>" we obtain:</p><br>
+<div style='width:100%;text-align:center;'>
+<pre>
+Present Global Markovian State
+↓
+relational difference
+↓
+internal reorganization
+↓
+successor state
+</pre>
+</div>
+<p>Each physically actualized configuration within the Quantum Field possesses its own Markovian state. These states couple relationally and become progressively organized within boundaries of identity, forming larger-scale Markovian configurations until the organization reaches the entity's three-dimensional macroscopic manifestation and the spatial extent over which it can exert physical influence. Thus, the entity's physical manifestation is not limited to its quantum-level configuration but encompasses the spatial extent of its physically actualized relational influence.</p><BR>
+
+<div style='width:100%;text-align:center;'>
+<img src='https://cdn-images-1.medium.com/v2/resize:fit:800/1*wrfWmeqtfPSStUvjHxWzSg.png'>
+</div><br>
+
+<p>The crucial point is that the organism has one identity boundary, within which multiple Markovian states of different scopes are simultaneously actualized and dynamically coupled. These states are not separate entities; they are configurations within the organization of the same entity. Thus, the three-dimensional entity is the macroscopic manifestation of an organization constituted through relational groupings of Markovian states in the N-dimensional Quantum-Field manifold. The extent of physical influence describes the relational reach of the entity beyond its identity boundary and is therefore distinct from the boundary that determines the entity's own organization.</p>
+
+<h3>Evolutionary process</h3>
+<p>
+Science can describe an evolutionary lineage leading from earlier organisms toward increasingly complex hominins. But that continuity of biological descent does not by itself establish that consciousness is generated by the biological process. That latter claim is an additional theoretical interpretation. Indeed, contemporary consciousness literature recognizes that the evolutionary history of consciousness remains unresolved.
+</p>
+<p style="font-family: ui-monospace, Consolas, monospace; font-size: 0.9em;">
+Thus, in this context, this article proposes that the evolutionary process progressively actualizes increasingly complex living organizations through lawful Markovian state transitions, until a biological organization capable of supporting human existence is reached. At that point, the organism constitutes the biological condition prepared for the conception of the human soul ex nihilo.
+</p><br>
+
+<p>
+Accordingly to the <a href='https://medium.com/@perevictor/framework-x-e1029be80147' target='_blank'>Framework X</a> (under development): <br>
+
+The intellect—<i>the Sense of Flow</i>—and intelligence—<i>the Flow of Sense</i>—are two related yet distinct concepts. The intellect refers to qualities or capacities inherent in created entities, whereas intelligence concerns beings endowed with consciousness. (<a href='https://pretace.surge.sh/book/TACE_ENS_INTELLECT_AESTHESIS_INTELLIGENCE_DISCOVERIES.md' target='_blank'>source</a>). Together, they constitute an integrative unit. Their relation may be represented analogically by the structure of the Caduceus: two distinct yet <i>inextricably interlocked principles</i> whose reciprocal relation constitutes a single operational unity. <b style='color:navy;'>Intellect and Aesthesis</b> are not two substances forming a composite substance; rather, they are two interlocked principles whose operation constitutes the <i>transient ens operational unit</i>.</p><br>
+
+<p><i>The mathematical <b style='color:navy;'>fold model of Catastrophe Theory</b> provides a model for the dynamics of the Aesthesis structure</i>, extending the Aristotelian–Thomistic conception of Intellect by treating it as an operative principle inherent in created entities and expressed through a <i>transient ens</i>. This transient determination remains incomplete with respect to its highest realization until, in beings endowed with consciousness, its operation becomes fully articulated as <b>Intelligence</b>. Thus, <b  style='color:maroon;'>Intelligence</b><b  style='color:navy;'> constitutes the conscious realization of the Intellect–Aesthesis structure</b>, acquiring the status of an <i>Intelligence entity</i>.<br>
+
+<p>Accordingly, <b style='color:navy;'>entities may be understood as undergoing successive phases of actualized determination and lawful change</b>. This dynamic <b>pervades forms as an intrinsic tendency toward higher-order structured manifestations</b>. In biological organization, this tendency is expressed through increasingly organized configurations, including the autopoietic organization of living beings described by Maturana and Varela and the account of cognition developed within the Santiago Theory of Cognition. Within the evolutionary trajectory leading to consciousness, these successive determinations may therefore be understood as progressing from organic organization through living and cognitive organization toward the conscious realization of Intelligence, understood as the <i>Flow of Sense</i>.
+</p><br>
+
+<h3>From Quantum Field to Cosmos through Theos</H3>
+<p>Framework X is neither Platonic nor materialist. It draws upon **Aristotelian–Thomistic hylomorphism** as its principal conceptual resource, while extending that framework through an explicit doctrine of **Creation ex nihilo**.</p>
+
+<p>Whereas Aristotelian hylomorphism provides the conceptual structure for understanding potency, form, actuality, and substance, Framework X places these relations within a prior theological ontology: **God, the Creator, is the Unmoved Mover, Pure Act, and the transcendent source of all created being**. Creation therefore does not arise from a pre-existing material substrate independent of God. Rather, the entire created order—including **Prime Potency, the Matrix, intelligences, angels, and the conditions through which physical reality becomes manifest—is brought into being by God ex nihilo**.</p><br>
+
+<p>The subsequent deployment of creation is therefore not itself a second creation from nothing at every stage. It is the lawful actualization and organization of created potentialities according to the **Creation Design** grounded in the divine act of creation. Within this order, the transition from the Quantum Field toward physical and biological reality can be understood as a succession of actualizations, while the emergence of human beings includes a distinct ontological act: the **creation of the human soul ex nihilo** when the biological condition prepared for humanity is present.</p><br>
+
+<p>Thus, Framework X distinguishes between the original act of Creation ex nihilo, through which God establishes the entire created order, and the subsequent actualization, organization, and deployment of created potentialities through which the cosmos unfolds. In this sense, it seeks to bring the metaphysical resources of Scholasticism—more specifically, Thomism—into dialogue with the conceptual foundations of modern science, without reducing one to the other.</p><br>
+<p>
+This, however, is only a brief introduction to a much larger project. The implications of this framework—from Creation, Prime Potency, and the Matrix through physical reality, life, consciousness, and the human soul—require a treatment far beyond the scope of a few lines in a blog post.</p>
+
+
+1. https://en.wikipedia.org/wiki/Markov_chain
+
+</main>
+</body>
+</html>

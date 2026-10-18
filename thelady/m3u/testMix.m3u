@@ -1,0 +1,9 @@
+#EXTM3U
+#EXTINF:2,Show Primary and use Secondary dropdown
+https://www.youtube.com/watch?v=W3KGm_8eccc&list=PL5TPzgtK7wgsL42BftjWGN6ymR8A8ni0t&index=11
+#EXTINF:4,Occupy the Primary - block
+https://pretace.surge.sh/book/mediterranean.csv
+#EXTINF:1,Occupy the Primary - block
+http://localhost:8000/book/mediterranean.csv
+#EXTINF:3,Occupy the Primary - block
+mediterranean.csv

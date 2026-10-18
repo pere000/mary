@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Install Mary on your computer</title>
+<style>
+  body{font-family:Arial,Helvetica,sans-serif;background:#eef1f5;color:#20242a;margin:0;padding:16px}
+  main{max-width:760px;margin:0 auto;background:#fff;border-radius:8px;padding:20px 24px;box-shadow:0 1px 4px #0002}
+  h1{margin-top:0}
+  .tabs{display:flex;gap:8px;margin:16px 0}
+  .tabs button{flex:1;padding:10px;border:1px solid #9aa4b2;background:#f6f8fa;border-radius:6px;cursor:pointer;font-size:1em}
+  .tabs button.on{background:#20242a;color:#fff;border-color:#20242a}
+  ol li{margin:14px 0}
+  .cmd{display:flex;gap:8px;align-items:stretch;margin-top:6px}
+  .cmd code{flex:1;background:#20242a;color:#e8f0ff;padding:8px 10px;border-radius:6px;overflow-x:auto;white-space:pre}
+  .cmd button{padding:0 12px;border:0;border-radius:6px;background:#2f6fed;color:#fff;cursor:pointer}
+  .note{background:#fff8e1;border-left:4px solid #f0b400;padding:8px 12px;margin:10px 0;font-size:.95em}
+  a{color:#2f6fed}
+  .os ol{list-style:none;padding-left:0;counter-reset:step}
+  .os ol>li{counter-increment:step;padding-left:34px;position:relative}
+  .os ol>li::before{content:counter(step) ".";position:absolute;left:0;top:0;font-weight:bold}
+  .os ol>li.done{opacity:.55}
+  .os ol>li .tick{position:absolute;left:-4px;top:22px;width:20px;height:20px;cursor:pointer}
+  #progress{display:flex;justify-content:space-between;align-items:center;font-size:.95em;color:#555}
+  #reset{border:1px solid #9aa4b2;background:#f6f8fa;border-radius:6px;padding:4px 10px;cursor:pointer}
+  .os{display:none}
+  #startBtn{padding:12px 22px;border:0;border-radius:6px;background:#2f6fed;color:#fff;font-size:1.1em;cursor:pointer}
+  #translateBox{display:flex;justify-content:flex-end;align-items:center;gap:8px;min-height:32px}
+  #translateBtn{border:1px solid #9aa4b2;background:#f6f8fa;border-radius:6px;padding:6px 12px;cursor:pointer}
+  #google_translate_element .goog-te-gadget{font-size:0}
+  body{top:0!important}
+  .skiptranslate iframe.skiptranslate{display:none!important}
+  #siteBox{margin:10px 0;padding:10px 12px;background:#f6f8fa;border-radius:6px}
+  #siteName{padding:6px 8px;border:1px solid #9aa4b2;border-radius:6px;width:220px;margin-right:4px}
+  #trouble{margin-top:24px;border-top:1px solid #d5dae1;padding-top:8px}
+  #trouble h2{font-size:1.15em}
+  #trouble details{margin:6px 0;padding:6px 10px;background:#f6f8fa;border-radius:6px}
+  #trouble summary{cursor:pointer;font-weight:bold}
+  #trouble details[open] summary{margin-bottom:6px}
+  [hidden]{display:none!important}
+  .os.on{display:block}
+  #status{margin-top:18px;padding:10px 12px;border-radius:6px;background:#eaf6ec}
+</style>
+</head>
+<body>
+<main>
+<div id="translateBox">
+  <button id="translateBtn" type="button">🌐 Translate</button>
+  <div id="google_translate_element"></div>
+</div>
+<h1>Install Mary on your computer</h1>
+<p>After installation, Mary runs in your browser in one of these ways:</p>
+<ol>
+  <li>Directly from <code>thelady/music.html</code> (very restricted: local audio files only).</li>
+  <li>From a local web server of your choice:
+    <ol type="A">
+      <li>based on <b>Python</b> (<code>mary.py</code>, the default in these steps),</li>
+      <li>the <b>PHP</b> built-in web server (<code>php -S</code>),</li>
+      <li>or any server you personally possess.</li>
+    </ol>
+  </li>
+</ol>
+<p>In every case you need <b>git</b> (to download the app) and a web server (the steps below guide you with the Python or PHP built-in servers).
+Follow the steps for your system. PHP and Docker are not required (Docker or Podman is, however, highly recommended).
+Having problems with the install process? Ask an AI assistant to guide you (ChatGPT, Google Gemini, Microsoft Copilot, etc.). Tell it your operating system, the step you are on and the exact error message.</p>
+
+<section id="start">
+  <p>The installer guides you step by step: git, the app download, publishing your own copy, Python, and the first run.
+  Your progress is saved in this browser (IndexedDB), so you can close the page and continue later.</p>
+  <button id="startBtn" type="button">Start to install</button>
+  <p id="resumeNote" hidden></p>
+</section>
+
+<div id="installer" hidden>
+<div id="siteBox">
+  <label for="siteName"><b>Your public address</b> (you choose it; letters, digits and hyphens):</label>
+  <div><input id="siteName" type="text" maxlength="40" placeholder="yourDesiredName" autocomplete="off" spellcheck="false" translate="no"><code translate="no">.surge.sh</code></div>
+</div>
+<div class="tabs" id="tabs">
+  <button data-os="windows">Windows</button>
+  <button data-os="linux">Linux</button>
+  <button data-os="mac">macOS</button>
+  <button data-os="other">Other OS</button>
+</div>
+
+<div id="progress"><span id="count"></span><button id="reset" type="button">Start over</button></div>
+
+<div class="os" id="windows">
+  <ol>
+    <li><b>Check for git.</b> Open <i>Command Prompt</i> (Windows key, type <code>cmd</code>) and run:
+      <div class="cmd"><code>git --version</code><button>Copy</button></div>
+      If it prints a version, go to step 3. Otherwise continue with step 2.
+    </li>
+    <li><b>Install git</b> if needed:
+      <div class="cmd"><code>winget install Git.Git</code><button>Copy</button></div>
+      or download it from <a href="https://git-scm.com/download/win" target="_blank" rel="noopener">git-scm.com</a>. Then close and reopen Command Prompt.
+    </li>
+    <li><b>Download the app</b> (creates the folder <code>{{DIR}}</code>):
+      <div class="cmd"><code>git clone {{URL}}</code><button>Copy</button></div>
+      <div class="cmd"><code>cd {{DIR}}</code><button>Copy</button></div>
+      To get later updates, run <code>git pull</code> inside that folder.
+      <div class="note">At this step you can already use <code>thelady/music.html</code> in your browser, but only to play local
+      mp3, mp4 and ogg audio files from your computer, with the <b>Stop</b> and <b>Load</b> buttons.
+      To use the full app, continue with the next steps.</div>
+    </li>
+    <li><b>Check for Node.js</b> (the publishing tool, <code>surge</code>, needs it; Python is not needed for this).
+      Run in Command Prompt:
+      <div class="cmd"><code>node --version</code><button>Copy</button></div>
+      If it prints a version number, go to step 6.
+    </li>
+    <li><b>Install Node.js</b> if needed:
+      <div class="cmd"><code>winget install OpenJS.NodeJS.LTS</code><button>Copy</button></div>
+      or download the installer from <a href="https://nodejs.org/" target="_blank" rel="noopener">nodejs.org</a>. Then close and reopen Command Prompt and return to the folder with <code>cd {{DIR}}</code>.
+    </li>
+    <li><b>Publish your own copy</b> at the address you chose above.
+      Make sure you are in the app folder (the listing must show <code>index.html</code>):
+      <div class="cmd"><code>dir index.html</code><button>Copy</button></div>
+      Then publish it:
+      <div class="cmd"><code>npx surge . {{SITE}}.surge.sh</code><button>Copy</button></div>
+      The first time, <code>surge</code> asks for your email and a password. That creates your free account, and nothing is typed visibly in the password field.
+      When it finishes, open <code>https://{{SITE}}.surge.sh</code> in your browser.
+      <div class="note">Your published site works without Python. The steps below are only for running the local server on this computer.</div>
+    </li>
+    <li><b>Check for Python.</b>
+      <div class="cmd"><code>python --version</code><button>Copy</button></div>
+      It must print <code>Python 3.8</code> or higher. If typing <code>python</code> opens the Microsoft Store, Python is not installed.
+    </li>
+    <li><b>Install Python</b> if needed:
+      <div class="cmd"><code>winget install Python.Python.3.12</code><button>Copy</button></div>
+      or download it from <a href="https://www.python.org/downloads/" target="_blank" rel="noopener">python.org</a> and tick <b>"Add python.exe to PATH"</b>. Then close and reopen Command Prompt and re-enter the folder with <code>cd {{DIR}}</code>.
+    </li>
+    <li><b>Start Mary</b> (from inside the folder):
+      <div class="cmd"><code>python mary.py</code><button>Copy</button></div>
+      <div class="note"><b>Option B, PHP instead of Python:</b> if you already have PHP, run <code>php -S localhost:8000</code> in the app folder and open <code>http://localhost:8000/thelady/music.html</code>. PHP also runs <code>tace-fetch.php</code> for remote playlists.</div>
+    </li>
+  </ol>
+  <div class="note">Having problems with the install process? Ask an AI assistant to guide you (ChatGPT, Google Gemini, Microsoft Copilot, etc.). Tell it your operating system, the step you are on and the exact error message.</div>
+</div>
+
+<div class="os" id="linux">
+  <ol>
+    <li><b>Check for git.</b> Open a terminal and run:
+      <div class="cmd"><code>git --version</code><button>Copy</button></div>
+      If it prints a version, go to step 3. Otherwise continue with step 2.
+    </li>
+    <li><b>Install git</b> if needed:
+      <div class="cmd"><code>sudo apt install git</code><button>Copy</button></div>
+      Debian, Ubuntu and Mint use <code>apt</code>. Fedora: <code>sudo dnf install git</code>. Arch: <code>sudo pacman -S git</code>.
+    </li>
+    <li><b>Download the app</b> (creates the folder <code>{{DIR}}</code>):
+      <div class="cmd"><code>git clone {{URL}}</code><button>Copy</button></div>
+      <div class="cmd"><code>cd {{DIR}}</code><button>Copy</button></div>
+      To get later updates, run <code>git pull</code> inside that folder.
+      <div class="note">At this step you can already use <code>thelady/music.html</code> in your browser, but only to play local
+      mp3, mp4 and ogg audio files from your computer, with the <b>Stop</b> and <b>Load</b> buttons.
+      To use the full app, continue with the next steps.</div>
+    </li>
+    <li><b>Check for Node.js</b> (the publishing tool, <code>surge</code>, needs it; Python is not needed for this).
+      Run in a terminal:
+      <div class="cmd"><code>node --version</code><button>Copy</button></div>
+      If it prints a version number, go to step 6.
+    </li>
+    <li><b>Install Node.js</b> if needed:
+      <div class="cmd"><code>sudo apt install nodejs npm</code><button>Copy</button></div>
+      Fedora: <code>sudo dnf install nodejs npm</code>. Arch: <code>sudo pacman -S nodejs npm</code>. Or use <a href="https://nodejs.org/" target="_blank" rel="noopener">nodejs.org</a>.
+    </li>
+    <li><b>Publish your own copy</b> at the address you chose above.
+      Make sure you are in the app folder (the listing must show <code>index.html</code>):
+      <div class="cmd"><code>ls index.html</code><button>Copy</button></div>
+      Then publish it:
+      <div class="cmd"><code>npx surge . {{SITE}}.surge.sh</code><button>Copy</button></div>
+      The first time, <code>surge</code> asks for your email and a password. That creates your free account, and nothing is typed visibly in the password field.
+      When it finishes, open <code>https://{{SITE}}.surge.sh</code> in your browser.
+      <div class="note">Your published site works without Python. The steps below are only for running the local server on this computer.</div>
+    </li>
+    <li><b>Check for Python.</b>
+      <div class="cmd"><code>python3 --version</code><button>Copy</button></div>
+      It must print 3.8 or higher. Most distributions already have it.
+    </li>
+    <li><b>Install Python</b> if needed:
+      <div class="cmd"><code>sudo apt install python3</code><button>Copy</button></div>
+      Fedora: <code>sudo dnf install python3</code>. Arch: <code>sudo pacman -S python</code>.
+    </li>
+    <li><b>Start Mary</b> (from inside the folder):
+      <div class="cmd"><code>python3 mary.py</code><button>Copy</button></div>
+      <div class="note"><b>Option B, PHP instead of Python:</b> if you already have PHP, run <code>php -S localhost:8000</code> in the app folder and open <code>http://localhost:8000/thelady/music.html</code>. PHP also runs <code>tace-fetch.php</code> for remote playlists.</div>
+    </li>
+  </ol>
+  <div class="note">Having problems with the install process? Ask an AI assistant to guide you (ChatGPT, Google Gemini, Microsoft Copilot, etc.). Tell it your operating system, the step you are on and the exact error message.</div>
+</div>
+
+<div class="os" id="other">
+  <ol>
+    <li><b>Check for git.</b> Open a terminal and run:
+      <div class="cmd"><code>git --version</code><button>Copy</button></div>
+      If it prints a version, go to step 3. Otherwise continue with step 2.
+    </li>
+    <li><b>Install git</b> if needed:
+      Install git from <a href="https://git-scm.com/downloads" target="_blank" rel="noopener">git-scm.com</a> or with your system's package manager (for example <code>pkg install git</code> on FreeBSD).
+    </li>
+    <li><b>Download the app</b> (creates the folder <code>{{DIR}}</code>):
+      <div class="cmd"><code>git clone {{URL}}</code><button>Copy</button></div>
+      <div class="cmd"><code>cd {{DIR}}</code><button>Copy</button></div>
+      To get later updates, run <code>git pull</code> inside that folder.
+      <div class="note">At this step you can already use <code>thelady/music.html</code> in your browser, but only to play local
+      mp3, mp4 and ogg audio files from your computer, with the <b>Stop</b> and <b>Load</b> buttons.
+      To use the full app, continue with the next steps.</div>
+    </li>
+    <li><b>Check for Node.js</b> (the publishing tool, <code>surge</code>, needs it; Python is not needed for this).
+      Run in a terminal:
+      <div class="cmd"><code>node --version</code><button>Copy</button></div>
+      If it prints a version number, go to step 6.
+    </li>
+    <li><b>Install Node.js</b> if needed:
+      Install Node.js from <a href="https://nodejs.org/" target="_blank" rel="noopener">nodejs.org</a> or with your system's package manager (for example <code>pkg install node npm</code> on FreeBSD), then open a new terminal.
+    </li>
+    <li><b>Publish your own copy</b> at the address you chose above.
+      Make sure you are in the app folder (the one that contains <code>index.html</code>), then publish it:
+      <div class="cmd"><code>npx surge . {{SITE}}.surge.sh</code><button>Copy</button></div>
+      The first time, <code>surge</code> asks for your email and a password. That creates your free account, and nothing is typed visibly in the password field.
+      When it finishes, open <code>https://{{SITE}}.surge.sh</code> in your browser.
+      <div class="note">Your published site works without Python. The steps below are only for running the local server on this computer.</div>
+    </li>
+    <li><b>Check for Python.</b>
+      <div class="cmd"><code>python3 --version</code><button>Copy</button></div>
+      It must print 3.8 or higher. Most distributions already have it.
+    </li>
+    <li><b>Install Python</b> if needed:
+      Download it from <a href="https://www.python.org/downloads/" target="_blank" rel="noopener">python.org</a> or use your system's package manager.
+    </li>
+    <li><b>Start Mary</b> (from inside the folder):
+      <div class="cmd"><code>python3 mary.py</code><button>Copy</button></div>
+      <div class="note"><b>Option B, PHP instead of Python:</b> if you already have PHP, run <code>php -S localhost:8000</code> in the app folder and open <code>http://localhost:8000/thelady/music.html</code>. PHP also runs <code>tace-fetch.php</code> for remote playlists.</div>
+    </li>
+  </ol>
+  <div class="note">Having problems with the install process? Ask an AI assistant to guide you (ChatGPT, Google Gemini, Microsoft Copilot, etc.). Tell it your operating system, the step you are on and the exact error message.</div>
+</div>
+
+<div class="os" id="mac">
+  <ol>
+    <li><b>Check for git.</b> Open <i>Terminal</i> and run:
+      <div class="cmd"><code>git --version</code><button>Copy</button></div>
+      If macOS offers to install the developer tools, accept, wait, then run it again.
+    </li>
+    <li><b>Install git</b> if needed:
+      <div class="cmd"><code>brew install git</code><button>Copy</button></div>
+      or install the Xcode Command Line Tools with <code>xcode-select --install</code>.
+    </li>
+    <li><b>Download the app</b> (creates the folder <code>{{DIR}}</code>):
+      <div class="cmd"><code>git clone {{URL}}</code><button>Copy</button></div>
+      <div class="cmd"><code>cd {{DIR}}</code><button>Copy</button></div>
+      To get later updates, run <code>git pull</code> inside that folder.
+      <div class="note">At this step you can already use <code>thelady/music.html</code> in your browser, but only to play local
+      mp3, mp4 and ogg audio files from your computer, with the <b>Stop</b> and <b>Load</b> buttons.
+      To use the full app, continue with the next steps.</div>
+    </li>
+    <li><b>Check for Node.js</b> (the publishing tool, <code>surge</code>, needs it; Python is not needed for this).
+      Run in Terminal:
+      <div class="cmd"><code>node --version</code><button>Copy</button></div>
+      If it prints a version number, go to step 6.
+    </li>
+    <li><b>Install Node.js</b> if needed:
+      <div class="cmd"><code>brew install node</code><button>Copy</button></div>
+      or download the installer from <a href="https://nodejs.org/" target="_blank" rel="noopener">nodejs.org</a>.
+    </li>
+    <li><b>Publish your own copy</b> at the address you chose above.
+      Make sure you are in the app folder (the listing must show <code>index.html</code>):
+      <div class="cmd"><code>ls index.html</code><button>Copy</button></div>
+      Then publish it:
+      <div class="cmd"><code>npx surge . {{SITE}}.surge.sh</code><button>Copy</button></div>
+      The first time, <code>surge</code> asks for your email and a password. That creates your free account, and nothing is typed visibly in the password field.
+      When it finishes, open <code>https://{{SITE}}.surge.sh</code> in your browser.
+      <div class="note">Your published site works without Python. The steps below are only for running the local server on this computer.</div>
+    </li>
+    <li><b>Check for Python.</b>
+      <div class="cmd"><code>python3 --version</code><button>Copy</button></div>
+      It must print 3.8 or higher. The developer tools also provide Python 3.
+    </li>
+    <li><b>Install Python</b> if needed:
+      Download it from <a href="https://www.python.org/downloads/" target="_blank" rel="noopener">python.org</a>, or with Homebrew:
+      <div class="cmd"><code>brew install python</code><button>Copy</button></div>
+    </li>
+    <li><b>Start Mary</b> (from inside the folder):
+      <div class="cmd"><code>python3 mary.py</code><button>Copy</button></div>
+      <div class="note"><b>Option B, PHP instead of Python:</b> if you already have PHP, run <code>php -S localhost:8000</code> in the app folder and open <code>http://localhost:8000/thelady/music.html</code>. PHP also runs <code>tace-fetch.php</code> for remote playlists.</div>
+    </li>
+  </ol>
+  <div class="note">Having problems with the install process? Ask an AI assistant to guide you (ChatGPT, Google Gemini, Microsoft Copilot, etc.). Tell it your operating system, the step you are on and the exact error message.</div>
+</div>
+
+<div id="status">
+  Your browser will open the app at
+  <a href="http://localhost:8080/thelady/music.html">http://localhost:8080/thelady/music.html</a>.
+  Press <b>Ctrl+C</b> in the terminal to stop it. If port 8080 is busy, add
+  <code>--port 9000</code> to the command and open <code>localhost:9000</code> instead.
+</div>
+<section id="trouble">
+  <h2>Troubleshooting</h2>
+
+  <details><summary><code>node</code> or <code>npx</code> is "not found" / "not recognized"</summary>
+    <p>Close and reopen the terminal after installing Node.js. If it still fails, reinstall from <a href="https://nodejs.org/" target="_blank" rel="noopener">nodejs.org</a>.</p>
+  </details>
+  <details><summary>Windows: PowerShell says running scripts is disabled (<code>npx</code>)</summary>
+    <p>Use Command Prompt (<code>cmd</code>) instead of PowerShell.</p>
+  </details>
+  <details><summary>Linux: <code>npx</code> fails with EACCES (permission denied)</summary>
+    <p>Don't use <code>sudo</code> with <code>npx</code>. Fix the npm folder permissions or install Node.js with <code>nvm</code>.</p>
+  </details>
+  <details><summary>surge says the domain is not available or you have no permission</summary>
+    <p>Someone else already owns that name. Choose another address in the box at the top and run the publish command again.</p>
+  </details>
+  <details><summary>Nothing appears when I type my surge password</summary>
+    <p>That is normal: the password is hidden while you type. Type it and press Enter.</p>
+  </details>
+  <details><summary><code>git</code> or <code>python</code> is "not recognized" / "command not found" right after installing</summary>
+    Close the terminal and open a new one. A terminal opened before the installation doesn't see the new program.
+  </details>
+
+  <details><summary>Windows: <code>python</code> opens the Microsoft Store</summary>
+    Python isn't installed yet. Install it (step 8), then open a new Command Prompt. You can also try the Python launcher:
+    <code>py --version</code> and <code>py mary.py</code>. If the Store still opens, turn off
+    <i>Settings → Apps → Advanced app settings → App execution aliases</i> for "python.exe".
+  </details>
+
+  <details><summary>Windows: <code>winget</code> is not recognized</summary>
+    Older Windows 10 versions don't have it. Download the installers instead:
+    <a href="https://git-scm.com/download/win" target="_blank" rel="noopener">git</a> and
+    <a href="https://www.python.org/downloads/" target="_blank" rel="noopener">Python</a>
+    (tick <b>"Add python.exe to PATH"</b>).
+  </details>
+
+  <details><summary>Linux/macOS: <code>python</code> doesn't exist</summary>
+    Use <code>python3</code>. On Debian/Ubuntu, <code>sudo apt update</code> before installing can fix "package not found".
+  </details>
+
+  <details><summary><code>git clone</code> fails</summary>
+    <ul>
+      <li><i>"destination path already exists"</i>: you already downloaded it. Run <code>cd</code> into the folder and <code>git pull</code> to update.</li>
+      <li><i>"repository not found"</i> or 404: check the address you copied, and that you are online.</li>
+      <li>Behind a company proxy or firewall: ask your administrator, or download the ZIP from the repository page on GitHub instead of using git.</li>
+    </ul>
+  </details>
+
+  <details><summary><code>cd</code> says the folder doesn't exist</summary>
+    Run <code>cd</code> from the place where you ran <code>git clone</code>, or use the full path to the folder
+    (the one that contains <code>mary.py</code> and <code>thelady</code>).
+  </details>
+
+  <details><summary><code>mary.py</code> says "Cannot find thelady/music.html" or "can't open file"</summary>
+    You are in the wrong folder. List it with <code>dir</code> (Windows) or <code>ls</code> (Linux/macOS): you must see
+    <code>mary.py</code> and <code>thelady</code>.
+  </details>
+
+  <details><summary>"Python 3.8 or newer is required"</summary>
+    Your Python is too old. Install a newer version (step 8) and run the version check again.
+  </details>
+
+  <details><summary>"Port 8080 is busy"</summary>
+    Another program uses that port. Start with another one, for example <code>python mary.py --port 9000</code>
+    (<code>python3</code> on Linux/macOS), then open <code>http://localhost:9000/thelady/music.html</code>.
+  </details>
+
+  <details><summary>The browser didn't open by itself</summary>
+    Open <code>http://localhost:8080/thelady/music.html</code> yourself while <code>mary.py</code> is still running.
+  </details>
+
+  <details><summary>Windows asks to allow Python through the firewall</summary>
+    Mary only listens on your own computer (127.0.0.1), so no network access is needed. You can click <b>Cancel</b>.
+  </details>
+
+  <details><summary>A remote playlist (<code>?source=https://...</code>) doesn't load</summary>
+    Check that you are online and that the address ends in <code>.csv</code>, <code>.m3u</code> or <code>.m3u8</code>.
+    Playlists on private or local network addresses are blocked on purpose.
+  </details>
+
+  <details><summary>The page says progress can't be saved, or the steps reset</summary>
+    Private or incognito windows and "clear cookies and site data on exit" erase the saved progress. The steps themselves still work.
+  </details>
+</section>
+<p id="finished" hidden>Installation finished. You can close this page.</p>
+</div>
+</main>
+
+<script>
+(function () {
+  var REPO_URL = "https://github.com/pere000/mary.git";
+  var REPO_DIR = "mary";
+
+  document.querySelectorAll(".os code").forEach(function (c) {
+    if (c.textContent.indexOf("{{") !== -1) { c.dataset.tpl = c.textContent; }
+  });
+
+  function cleanSite(v) {
+    return (v || "").toLowerCase().replace(/\.surge\.sh$/, "").replace(/[^a-z0-9-]/g, "").replace(/^-+|-+$/g, "");
+  }
+
+  function renderTemplates() {
+    var site = cleanSite(state && state.site) || "yourDesiredName";
+    document.querySelectorAll("code[data-tpl]").forEach(function (c) {
+      c.textContent = c.dataset.tpl
+        .replace(/\{\{URL\}\}/g, REPO_URL)
+        .replace(/\{\{DIR\}\}/g, REPO_DIR)
+        .replace(/\{\{SITE\}\}/g, site);
+    });
+  }
+
+  // Commands must never be translated.
+  document.querySelectorAll("code").forEach(function (c) {
+    c.setAttribute("translate", "no");
+    c.classList.add("notranslate");
+  });
+
+  // Google Translate is loaded only when the user asks for it.
+  var translateLoaded = false;
+  window.googleTranslateElementInit = function () {
+    new google.translate.TranslateElement({
+      pageLanguage: "en",
+      layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+      autoDisplay: false
+    }, "google_translate_element");
+  };
+  document.getElementById("translateBtn").addEventListener("click", function () {
+    if (translateLoaded) return;
+    translateLoaded = true;
+    this.textContent = "🌐 Loading…";
+    var btn = this;
+    var sc = document.createElement("script");
+    sc.src = "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
+    sc.onload = function () { btn.hidden = true; };
+    sc.onerror = function () {
+      translateLoaded = false;
+      btn.textContent = "🌐 Translate (offline?)";
+    };
+    document.head.appendChild(sc);
+  });
+
+  var ua = navigator.userAgent || "";
+  var guess = /Win/i.test(ua) ? "windows" : /Mac/i.test(ua) ? "mac" : /BSD|SunOS|Solaris|Haiku/i.test(ua) ? "other" : "linux";
+  var tabs = document.querySelectorAll("#tabs button");
+
+  // Progress lives in IndexedDB: store "session" (one record) and "log" (event history).
+  var DB_NAME = "mary-install", db = null;
+  var state = { id: "current", startedAt: null, finishedAt: null, os: null, done: {}, site: "" };
+
+  function openDB() {
+    return new Promise(function (resolve, reject) {
+      if (!window.indexedDB) return reject(new Error("IndexedDB unavailable"));
+      var req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = function () {
+        var d = req.result;
+        d.createObjectStore("session", { keyPath: "id" });
+        d.createObjectStore("log", { keyPath: "n", autoIncrement: true });
+      };
+      req.onsuccess = function () { resolve(req.result); };
+      req.onerror = function () { reject(req.error); };
+    });
+  }
+
+  function dbGet(store, key) {
+    return new Promise(function (resolve) {
+      if (!db) return resolve(undefined);
+      var r = db.transaction(store).objectStore(store).get(key);
+      r.onsuccess = function () { resolve(r.result); };
+      r.onerror = function () { resolve(undefined); };
+    });
+  }
+
+  function dbPut(store, value) {
+    if (!db) return;
+    try { db.transaction(store, "readwrite").objectStore(store).put(value); } catch (e) {}
+  }
+
+  function logEvent(type, detail) {
+    dbPut("log", { at: new Date().toISOString(), type: type, detail: detail || null });
+  }
+
+  function save() { dbPut("session", state); }
+
+  function updateCount(os) {
+    var steps = document.querySelectorAll("#" + os + " ol > li");
+    var n = document.querySelectorAll("#" + os + " ol > li.done").length;
+    document.getElementById("count").textContent = n + " of " + steps.length + " steps done";
+  }
+
+  document.querySelectorAll(".os").forEach(function (section) {
+    section.querySelectorAll("ol > li").forEach(function (li, i) {
+      var id = section.id + ":" + i;
+      var box = document.createElement("input");
+      box.type = "checkbox";
+      box.className = "tick";
+      box.title = "Mark this step as done";
+      box.dataset.id = id;
+      box.addEventListener("change", function () {
+        li.classList.toggle("done", box.checked);
+        if (box.checked) state.done[id] = true; else delete state.done[id];
+        logEvent(box.checked ? "step-done" : "step-undone", id);
+        updateCount(section.id);
+        var all = document.querySelectorAll("#" + section.id + " ol > li").length;
+        var n = document.querySelectorAll("#" + section.id + " ol > li.done").length;
+        state.finishedAt = n === all ? new Date().toISOString() : null;
+        document.getElementById("finished").hidden = n !== all;
+        save();
+      });
+      li.appendChild(box);
+    });
+  });
+
+  function show(os) {
+    state.os = os;
+    save();
+    document.getElementById("finished").hidden = true;
+    tabs.forEach(function (b) { b.classList.toggle("on", b.dataset.os === os); });
+    document.querySelectorAll(".os").forEach(function (s) { s.classList.toggle("on", s.id === os); });
+    updateCount(os);
+  }
+
+  tabs.forEach(function (b) { b.addEventListener("click", function () { show(b.dataset.os); }); });
+
+  document.querySelectorAll(".cmd button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var text = b.previousElementSibling.textContent;
+      var done = function () { b.textContent = "Copied"; setTimeout(function () { b.textContent = "Copy"; }, 1200); };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var t = document.createElement("textarea");
+        t.value = text; document.body.appendChild(t); t.select();
+        document.execCommand("copy"); document.body.removeChild(t); done();
+      }
+    });
+  });
+
+  function applyState() {
+    document.querySelectorAll(".tick").forEach(function (b) {
+      b.checked = !!state.done[b.dataset.id];
+      b.parentNode.classList.toggle("done", b.checked);
+    });
+  }
+
+  function showInstaller() {
+    document.getElementById("start").hidden = true;
+    document.getElementById("installer").hidden = false;
+    applyState();
+    siteInput.value = state.site || "";
+    renderTemplates();
+    show(state.os || guess);
+  }
+
+  var siteInput = document.getElementById("siteName");
+  siteInput.addEventListener("input", function () {
+    state.site = cleanSite(siteInput.value);
+    renderTemplates();
+    save();
+  });
+  renderTemplates();
+
+  var resuming = false;
+
+  function begin() {
+    if (resuming) { logEvent("resumed"); return showInstaller(); }
+    state = { id: "current", startedAt: new Date().toISOString(), finishedAt: null, os: guess, done: {}, site: state.site || "" };
+    save();
+    logEvent("started", { os: guess });
+    showInstaller();
+  }
+  document.getElementById("startBtn").addEventListener("click", begin);
+
+  // Opened from the "Install Mary" button (install.html?start=1): skip the start screen.
+  var autoStart = new URLSearchParams(location.search).get("start") === "1";
+
+  function startOver() {
+    logEvent("reset");
+    state = { id: "current", startedAt: null, finishedAt: null, os: null, done: {}, site: "" };
+    save();
+    siteInput.value = "";
+    renderTemplates();
+    document.getElementById("installer").hidden = true;
+    document.getElementById("start").hidden = false;
+    document.getElementById("resumeNote").hidden = true;
+    document.getElementById("startBtn").textContent = "Start to install";
+    resuming = false;
+  }
+  document.getElementById("reset").addEventListener("click", startOver);
+
+  openDB().then(function (d) {
+    db = d;
+    return dbGet("session", "current");
+  }).then(function (saved) {
+    if (saved && saved.startedAt) {
+      state = saved;
+      var note = document.getElementById("resumeNote");
+      note.textContent = "You started on " + new Date(saved.startedAt).toLocaleString() + ".";
+      note.hidden = false;
+      document.getElementById("startBtn").textContent = "Continue installation";
+      resuming = true;
+    }
+    if (autoStart) begin();
+  }).catch(function () {
+    document.getElementById("resumeNote").textContent = "Progress can't be saved in this browser, but the steps still work.";
+    document.getElementById("resumeNote").hidden = false;
+    if (autoStart) begin();
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,3 @@
+#!/bin/bash
+#start local server localhost:8000/
+php -S localhost:8000

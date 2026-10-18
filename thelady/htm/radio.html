@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Desktop Radio</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #111;
+        color: white;
+        padding: 40px;
+    }
+
+    .stations {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+
+    .station {
+        padding: 20px 30px;
+        background: #333;
+        border-radius: 10px;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .station:hover {
+        background: #555;
+    }
+
+    .station.active {
+        background: #087f5b;
+    }
+
+    audio {
+        width: 400px;
+        max-width: 100%;
+    }
+
+    #status {
+        margin-top: 15px;
+        color: #aaa;
+    }
+</style>
+</head>
+
+<body>
+
+<h1><a href='' target='_blank'>Source: Icecast Radio Directory</a></h1>
+
+<div class="stations">
+
+    <div class="station"
+         data-name="The Blues Guitar Play"
+         data-stream="http://login.webinternetradio.com:1230/stream">
+        Station 1
+    </div>
+
+    <div class="station"
+         data-name="Blues Radio"
+         data-stream="http://play.streams.gr:22015/stream">
+        Station 2
+    </div>
+
+</div>
+
+<audio id="radio" controls preload="none"></audio>
+
+<div id="status">Select a station</div>
+
+
+<script>
+
+const radio = document.getElementById("radio");
+const stations = document.querySelectorAll(".station");
+const status = document.getElementById("status");
+
+stations.forEach(station => {
+
+    station.addEventListener("click", function () {
+
+        const stream = this.dataset.stream;
+        const name = this.dataset.name;
+
+        // Stop current station
+        radio.pause();
+
+        // Change stream
+        radio.src = stream;
+
+        // Reload the new source
+        radio.load();
+
+        // Visual selection
+        stations.forEach(s => s.classList.remove("active"));
+        this.classList.add("active");
+
+        status.textContent = "Connecting to " + name + "...";
+
+        // Start playback
+        radio.play()
+            .then(() => {
+                status.textContent = "Playing: " + name;
+            })
+            .catch(error => {
+                status.textContent = "Click Play to start " + name;
+                console.log(error);
+            });
+    });
+
+});
+
+radio.addEventListener("error", function () {
+    status.textContent = "Unable to connect to this stream.";
+});
+
+</script>
+
+</body>
+</html>

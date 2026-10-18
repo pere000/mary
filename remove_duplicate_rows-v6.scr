@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+
+# remove_duplicate_rows-v6.scr
+#
+# Usage:
+#   ./remove_duplicate_rows-v6.scr userFile.csv
+#
+# Behavior:
+#   - Cleans the input CSV IN PLACE.
+#   - Keeps the first occurrence of each exact row.
+#   - Appends every removed duplicate row to removed.csv using >>.
+#   - Does not add a CSV header.
+#   - Prints only a processing summary.
+#
+# Expected playback record format:
+#   Author|Title|urlFileName|urlLyric
+
+set -u
+
+REMOVED="removed.csv"
+
+if [[ $# -ne 1 ]]; then
+    echo "ERROR: Please provide one CSV-style input file."
+    echo
+    echo "Usage:"
+    echo "  $0 userFile.csv"
+    exit 1
+fi
+
+INPUT="$1"
+
+if [[ ! -f "$INPUT" ]]; then
+    echo "ERROR: File not found: $INPUT"
+    exit 1
+fi
+
+# Never truncate removed.csv. It is an accumulating playback file.
+touch "$REMOVED"
+
+# Use a temporary file because redirecting directly to INPUT would truncate
+# it before awk has a chance to read it.
+TMP="${INPUT}.tmp.$$"
+
+cleanup() {
+    rm -f "$TMP"
+}
+trap cleanup EXIT HUP INT TERM
+
+awk -F'|' -v removed_file="$REMOVED" '
+{
+    raw = $0
+
+    # Never write the CSV header.
+    if (raw == "Author|Title|urlFileName|urlLyric") {
+        next
+    }
+
+    # Ignore empty lines.
+    if (raw == "") {
+        next
+    }
+
+    # Exact duplicate:
+    # keep the first occurrence in the input file and append subsequent
+    # occurrences to removed.csv.
+    if (seen[raw]++) {
+        print raw >> removed_file
+        close(removed_file)
+        removed_rows++
+        next
+    }
+
+    print raw
+    kept_rows++
+}
+
+END {
+    print ""
+    print "----------------------------------------"
+    print "Duplicate processing summary"
+    print "----------------------------------------"
+    printf "Input rows:                %d\n", NR
+    printf "Unique rows kept:         %d\n", kept_rows
+    printf "Rows appended to removed: %d\n", removed_rows
+}
+' "$INPUT" > "$TMP"
+
+STATUS=$?
+
+if [[ $STATUS -eq 0 ]]; then
+    mv -f "$TMP" "$INPUT"
+    trap - EXIT HUP INT TERM
+
+    echo
+    echo "SUCCESS"
+    echo "Input/output file: $INPUT"
+    echo "Removed file:      $REMOVED"
+    echo "Rows kept:         $(wc -l < "$INPUT")"
+    echo "Rows in removed:   $(wc -l < "$REMOVED")"
+else
+    echo
+    echo "ERROR: Duplicate processing failed."
+    echo "Original file was not replaced: $INPUT"
+    echo "Removed file: $REMOVED"
+fi
+
+exit "$STATUS"
