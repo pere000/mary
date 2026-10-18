@@ -30,14 +30,14 @@ jobs:
       - name: Assemble the folder
         shell: bash
         run: |
-          mkdir -p dist/Mary
-          mv dist/mary* dist/Mary/
-          cp -r thelady dist/Mary/thelady
-          cp index.html MARY_AI_GUIDE.md dist/Mary/
+          mkdir -p pkg/Mary
+          cp dist/mary* pkg/Mary/
+          cp -r thelady pkg/Mary/thelady
+          cp index.html MARY_AI_GUIDE.md pkg/Mary/
       - name: Zip
         shell: bash
         run: |
-          cd dist
+          cd pkg
           if [ "${{ matrix.name }}" = "windows" ]; then
             7z a ../Mary-${{ matrix.name }}.zip Mary
           else
