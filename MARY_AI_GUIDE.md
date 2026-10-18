@@ -91,7 +91,7 @@ URLs once running: `http://localhost:8080/thelady/music.html` (Python/Docker) or
 
 ## 5. Installation (step order)
 
-Easiest route: download the ready-made zip (section 4, row 3b) and skip steps 1-6. Otherwise requirements: **git** (always) and a way to serve the app (Python, PHP, or your own server). Docker/Podman is optional but recommended.
+Easiest route: download the ready-made zip (section 4, row 3b; link: https://github.com/pere000/mary/releases/latest) and skip steps 1-6. Otherwise requirements: **git** (always) and a way to serve the app (Python, PHP, or your own server). Docker/Podman is optional but recommended.
 
 1. **Check git:** `git --version`.
 2. **Install git** if missing. Windows: `winget install Git.Git` (or git-scm.com). Debian/Ubuntu: `sudo apt install git`. Fedora: `sudo dnf install git`. Arch: `sudo pacman -S git`. macOS: `xcode-select --install` or `brew install git`.
