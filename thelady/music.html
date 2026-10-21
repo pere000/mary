@@ -788,8 +788,8 @@ main.container {
             </a>
         </div>
         <div style='text-align:left;padding-left:15px;' onclick="window.open('htm/howToUseThisResource.html', '_blank', 'noopener'); document.getElementById('urlFileName').value='csv/howToUse.csv'; loadAction();">
-            <img src='img/howToUseThisApp.png' style='width:65%;cursor:pointer;'><br>
-            <span style='font weight:bold;color:maroon;padding-left:30px;'><i>To install the App, click the link above.</i></span>
+            <img src='img/howToUseThisApp.png' style='width:65%;cursor:pointer;'>
+            <div style='font weight:bold;color:maroon;padding-left:30px;'><i>To install the App, click the link above and use the instructions.</i></div>
         </div>
         <br>
 
@@ -3448,7 +3448,7 @@ async function loadYouTubeRecordV4(
                                         if (
                                             autoplayCheckbox.checked &&
                                             !repeatCheckbox.checked &&
-                                            [2, 5, 100, 101, 150].includes(event.data)
+                                            [2, 5, 100, 101, 150, 152].includes(event.data)
                                         ) {
                                             setTimeout(() => {
 
@@ -3637,6 +3637,9 @@ function youtubeErrorMessage(code) {
 
         150:
             "The video owner does not allow embedded playback.",
+
+        152:
+            "The video owner does not allow embedded playback (error 152). Use the OPEN YOUTUBE button or the 📽 link to watch it on youtube.com.",
 
         153:
             "YouTube requires this page to be served over HTTP or HTTPS, not file://."
