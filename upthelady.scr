@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Update the mary app: commit/push to GitHub, then build and push the Docker image.
+# Usage: ./upthelady.scr ["commit message"]
+# Env:   SKIP_DOCKER=1 to only push to GitHub; SKIP_GIT=1 to only do Docker.
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+IMAGE="perevictor/mary"
+MSG="${1:-Update mary $(date +%F)}"
+
+if [[ -z "${SKIP_GIT:-}" ]]; then
+    echo ">> Pushing to GitHub"
+    git add -A
+    if git diff --cached --quiet; then
+        echo "   nothing to commit"
+    else
+        git commit -m "$MSG"
+    fi
+    git push origin "$(git branch --show-current)"
+fi
+
+if [[ -z "${SKIP_DOCKER:-}" ]]; then
+    echo ">> Building Docker image $IMAGE:latest"
+    docker build --network=host -t "$IMAGE:latest" .
+
+    echo ">> Pushing to Docker Hub (run 'docker login' first if this fails)"
+    docker push "$IMAGE:latest"
+fi
+
+echo ">> Done"

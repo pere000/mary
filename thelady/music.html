@@ -582,7 +582,7 @@ main.container {
     }
 }
 </style>
-
+<link rel="icon" type="image/x-icon" href="favicon.ico">
 </head>
 
 <body>
@@ -601,6 +601,7 @@ main.container {
                 </div> <!--https://diaspora.psyco.fr/uploads/images/2353330d16f643e206ed.webp-->
             </a>
         </div>
+<div>
 
 
     <div id='shiftCol1' style='display:none'>
@@ -608,8 +609,103 @@ main.container {
     <span style="color: red; font-weight: bold; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);"> Prose ▶ </span><i style='opacity: 0.3;'>Lyric</i></h1>
 
         <div style='padding-left:10px;color:maroon;'>
-            <b>The Myistici Corporis Christi</b>:</br>
-                <span style='color:navy;padding-left:10px;'><b>Our Lady Of Light</b>:<b style='color:#BF9903;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/christlight.csv'; loadAction();"> Christ Light</b></span><br>
+            <b>The Myistici Corporis Christi</b>  </br>
+                <span style='color:navy;padding-left:10px;'><b>Our Lady Of The Light</b>:<b style='color:#BF9903;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/christlight.csv'; loadAction();"> Christ Light</b></span><br>
+ <a href="txt/countries.txt" target="_blank" style="color:navy; margin-left:12px;">Link to view the list of countries</a><br>
+<input type="button" style="color:navy;margin: 0 0 10px 10px; padding:5px 0 5px 0;border-radius: 4px; cursor: pointer;width:50px;" value="Play" onclick="document.getElementById('urlFileName').value='csv/'+document.getElementById('country').value+'.csv'; loadAction();">
+
+<input id="country"
+       type="text"
+       style="color:navy; margin-left:5px;padding:4px 2px 5px 2px;
+              cursor:pointer; width:80%;"
+       oninput="completeCountry(this)" placeholder="Start typing a country name to complete it...">
+
+           <img
+    id="cflag"
+    src="https://raw.githubusercontent.com/pere000/myImgs/refs/heads/main/images/CanaryIslands.png"
+    alt="Not yet implemented"
+    style="padding-left:10px;width:95%;"
+>
+
+<script>
+
+
+const flagBaseURL =
+    "https://raw.githubusercontent.com/hampusborgos/country-flags/c09927e63705529bbf59ca6684cd9b23225dddad/svg/";
+
+let countries = [];
+
+fetch("csv/countries.csv")
+    .then(response => {
+        if (!response.ok) {
+            throw new Error("Cannot load countries.csv");
+        }
+        return response.text();
+    })
+    .then(csv => {
+        countries = csv
+            .split(/\r?\n/)
+            .map(line => {
+                const fields = line.split("|");
+
+                return {
+                    name: (fields[0] || "").trim(),
+                    code: (fields[1] || "").trim()
+                };
+            })
+            .filter(country => country.name && country.code);
+    })
+    .catch(error => console.error(error));
+
+function updateCountryFlag(countryCode) {
+    const flag = document.getElementById("cflag");
+
+    if (!flag) return;
+
+    if (!countryCode) {
+        flag.removeAttribute("src");
+        return;
+    }
+
+    flag.onerror = function () {
+        this.onerror = null;
+        this.removeAttribute("src");
+        this.alt = "Flag not available";
+    };
+
+    flag.src = flagBaseURL + countryCode.toLowerCase() + ".svg";
+    flag.alt = "Flag of " + countryCode.toUpperCase();
+}
+
+function completeCountry(input) {
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    let typed = input.value;
+
+    // Ignore the selected autocomplete suffix.
+    if (start !== end) {
+        typed = input.value.slice(0, start);
+    }
+
+    if (!typed || !countries.length) return;
+
+    const match = countries.find(country =>
+        country.name.toLowerCase().startsWith(typed.toLowerCase())
+    );
+
+    if (!match) return;
+
+    input.value = match.name;
+    input.setSelectionRange(typed.length, match.name.length);
+
+    updateCountryFlag(match.code);
+}
+
+                                    </script>
+
+                <br>
+
+
                 <span style='color:navy;padding-left:10px;'><b>Pio XII</b>:<b style='color:#BF9903;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/pioxii.csv'; loadAction();"> pioxii.csv</b></span><br>
 
                  <span style='color:navy;padding-left:10px;'><b>TACE Ontology</b>:<b style='color:#BF9903;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/taceDocs.csv'; loadAction();"> Philosophy, Semantic, Axioms, ...</b></span><br>
@@ -1998,11 +2094,13 @@ function isHTTP(value) {
 
 function isCSV(value) {
 
-    return value
+    const path = value
         .split("?")[0]
         .split("#")[0]
-        .toLowerCase()
-        .endsWith(".csv");
+        .toLowerCase();
+
+    /* .sce files may use the same pipe-delimited playlist format as CSV. */
+    return path.endsWith(".csv") || path.endsWith(".sce");
 }
 
 
@@ -2133,6 +2231,37 @@ function youtubePlaylistInfo(value) {
     }
     catch (error) {
 
+        return null;
+    }
+}
+
+
+/*
+ * A YouTube watch URL may use its familiar list= parameter for either a
+ * YouTube playlist ID or a URL to a custom pipe-delimited playlist file.
+ * Only absolute HTTP(S) URLs whose path is a supported playlist file are
+ * treated as custom Secondary Playlist sources.
+ */
+function youtubeCustomSecondaryPlaylistURL(value) {
+
+    const playlistInfo = youtubePlaylistInfo(value);
+
+    if (!playlistInfo || !playlistInfo.list) {
+        return null;
+    }
+
+    try {
+        // Accept both absolute URLs and relative paths such as csv/fileName.csv.
+        // Relative paths resolve against the page URL (e.g. /thelady/).
+        const parsed = new URL(playlistInfo.list, document.baseURI);
+
+        if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+            return null;
+        }
+
+        return isCSV(parsed.href) ? parsed.href : null;
+    }
+    catch (error) {
         return null;
     }
 }
@@ -3135,6 +3264,11 @@ async function loadYouTubeRecordV4(
             record.urlFileName
         );
 
+    const customSecondaryURL =
+        youtubeCustomSecondaryPlaylistURL(
+            record.urlFileName
+        );
+
     if (!videoId) {
 
         throw new Error(
@@ -3272,7 +3406,24 @@ async function loadYouTubeRecordV4(
                                             handlingYouTubeEnd =
                                                 true;
 
-                                            if (repeatCheckbox.checked) {
+                                            if (
+                                                activeSecondaryPlaylist?.kind === "csv"
+                                            ) {
+
+                                                advanceSecondaryCSVPlaylist()
+                                                    .catch(error => {
+                                                        message(
+                                                            `Custom CSV playlist playback failed:\n${error.message}`,
+                                                            "error"
+                                                        );
+                                                    })
+                                                    .finally(() => {
+                                                        handlingYouTubeEnd = false;
+                                                        updateDebug();
+                                                    });
+
+                                            }
+                                            else if (repeatCheckbox.checked) {
 
                                                 // getPlaylistIndex() can report -1 right
                                                 // after the last item ends; prefer the
@@ -3448,7 +3599,7 @@ async function loadYouTubeRecordV4(
                                         if (
                                             autoplayCheckbox.checked &&
                                             !repeatCheckbox.checked &&
-                                            [2, 5, 100, 101, 150, 152].includes(event.data)
+                                            [2, 5, 100, 101, 150].includes(event.data)
                                         ) {
                                             setTimeout(() => {
 
@@ -3488,11 +3639,42 @@ async function loadYouTubeRecordV4(
         );
     }
 
+    /*
+     * If list= contains a custom CSV/.sce URL, play the requested YouTube
+     * video by itself, then load that file into the app's Secondary Playlist.
+     * index= remains 1-based in copied URLs and selects the corresponding
+     * Secondary row (clamped to the file's available records).
+     */
     await loadYouTubeSource(
         videoId,
-        playlistInfo,
+        customSecondaryURL ? null : playlistInfo,
         shouldPlay
     );
+
+    if (customSecondaryURL) {
+        try {
+            const requestedSecondaryIndex = playlistInfo
+                ? playlistInfo.index
+                : 0;
+
+            const secondaryRecords = await loadCSVIntoSecondary(
+                customSecondaryURL,
+                requestedSecondaryIndex
+            );
+
+            message(
+                `Custom Secondary Playlist loaded: ${secondaryRecords.length} records from ${customSecondaryURL}`,
+                "success"
+            );
+        }
+        catch (error) {
+            updateYouTubePlaylist([], 0);
+            message(
+                `Custom Secondary Playlist load error:\n${error.message}`,
+                "error"
+            );
+        }
+    }
 
     if (shouldPlay) {
 
@@ -3637,9 +3819,6 @@ function youtubeErrorMessage(code) {
 
         150:
             "The video owner does not allow embedded playback.",
-
-        152:
-            "The video owner does not allow embedded playback (error 152). Use the OPEN YOUTUBE button or the 📽 link to watch it on youtube.com.",
 
         153:
             "YouTube requires this page to be served over HTTP or HTTPS, not file://."
@@ -4606,7 +4785,7 @@ function prepareRecord(record) {
    SECONDARY CSV PLAYLIST
    ========================================================= */
 
-async function loadCSVIntoSecondary(url) {
+async function loadCSVIntoSecondary(url, requestedIndex = 0) {
 
     const response = await fetchPlaylist(
         cacheBustedURL(
@@ -4670,11 +4849,19 @@ async function loadCSVIntoSecondary(url) {
 
     youtubePlaylistGeneration++;
 
+    const selectedIndex = Math.min(
+        Math.max(Number.isInteger(requestedIndex) ? requestedIndex : 0, 0),
+        records.length - 1
+    );
+
     activeSecondaryPlaylist = {
         kind: "csv",
         list: url,
-        index: 0,
-        records
+        index: selectedIndex,
+        records,
+        // The YouTube video in the main URL plays first. The CSV starts only
+        // when that video ends, then advances row by row through this app.
+        started: false
     };
 
     youtubePlaylistSelect.replaceChildren();
@@ -4688,10 +4875,12 @@ async function loadCSVIntoSecondary(url) {
         option.value = String(index);
         option.textContent =
             `${index + 1}. ${record.title}`;
-        option.selected = index === 0;
+        option.selected = index === selectedIndex;
 
         youtubePlaylistSelect.append(option);
     });
+
+    youtubePlaylistSelect.value = String(selectedIndex);
 
     return records;
 }
@@ -4739,6 +4928,50 @@ async function playSecondaryCSVRecord(record) {
 
         youtubePlaylistSelect.value = String(savedSecondary.index);
     }
+}
+
+
+/*
+ * Start the CSV attached through YouTube's list= parameter after the initial
+ * YouTube video ends, then advance through its rows when each row finishes.
+ */
+async function advanceSecondaryCSVPlaylist() {
+
+    const playlist = activeSecondaryPlaylist;
+
+    if (
+        !playlist ||
+        playlist.kind !== "csv" ||
+        !Array.isArray(playlist.records) ||
+        !playlist.records.length
+    ) {
+        return false;
+    }
+
+    const nextIndex = playlist.started
+        ? playlist.index + 1
+        : playlist.index;
+
+    if (nextIndex < 0 || nextIndex >= playlist.records.length) {
+        activeSecondaryPlaylist = null;
+        youtubePlaylistSelect.disabled = true;
+        state.playing = false;
+        state.paused = false;
+        message("Custom CSV playlist finished.", "success");
+        updateDebug();
+        return false;
+    }
+
+    playlist.index = nextIndex;
+    playlist.started = true;
+    youtubePlaylistSelect.value = String(nextIndex);
+
+    for (const option of youtubePlaylistSelect.options) {
+        option.selected = option.value === String(nextIndex);
+    }
+
+    await playSecondaryCSVRecord(playlist.records[nextIndex]);
+    return true;
 }
 
 
@@ -7590,6 +7823,16 @@ audio.addEventListener(
             true;
 
         try {
+
+            // CSV rows may be ordinary audio files. When one ends, continue
+            // with the next row instead of stopping at the end of that file.
+            if (
+                activeSecondaryPlaylist?.kind === "csv" &&
+                activeSecondaryPlaylist.started
+            ) {
+                await advanceSecondaryCSVPlaylist();
+                return;
+            }
 
             /*
             =================================================

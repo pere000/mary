@@ -1,4 +1,2 @@
 #!/bin/bash
-
-npx surge . mothermary.surge.sh
 npx surge . thelady.surge.sh
