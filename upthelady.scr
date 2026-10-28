@@ -24,7 +24,13 @@ if [[ -z "${SKIP_DOCKER:-}" ]]; then
     echo ">> Building Docker image $IMAGE:latest"
     docker build --network=host -t "$IMAGE:latest" .
 
-    echo ">> Pushing to Docker Hub (run 'docker login' first if this fails)"
+    HUB_USER="${IMAGE%%/*}"
+    if [[ "$(docker login --get-login docker.io 2>/dev/null || true)" != "$HUB_USER" ]]; then
+        echo ">> Docker Hub login required (use an access token as password)"
+        docker login docker.io -u "$HUB_USER"
+    fi
+
+    echo ">> Pushing to Docker Hub"
     docker push "$IMAGE:latest"
 fi
 
