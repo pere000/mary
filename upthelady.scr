@@ -35,3 +35,4 @@ if [[ -z "${SKIP_DOCKER:-}" ]]; then
 fi
 
 echo ">> Done"
+git config --global --list | grep user
