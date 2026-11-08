@@ -1,0 +1,133 @@
+#!/bin/bash
+
+# editor.scr
+# Usage: ./editor.scr filename [wrap_width]
+# Example: ./editor.scr article.txt 145
+
+if [[ $# -lt 1 || $# -gt 2 ]]; then
+    echo "Usage: $0 filename [wrap_width]"
+    exit 1
+fi
+
+FILE="$1"
+WRAP_WIDTH="${2:-}"
+
+if [[ ! -f "$FILE" || ! -r "$FILE" || ! -w "$FILE" ]]; then
+    echo "Error: File does not exist or is not readable/writable."
+    exit 1
+fi
+
+if [[ -n "$WRAP_WIDTH" && ! "$WRAP_WIDTH" =~ ^[1-9][0-9]*$ ]]; then
+    echo "Error: wrap_width must be a positive integer."
+    exit 1
+fi
+
+TMP=$(mktemp) || exit 1
+
+cleanup() {
+    rm -f "$TMP"
+}
+trap cleanup EXIT
+
+echo
+echo "======================================"
+echo "         TEXT EDITOR OPTIONS"
+echo "======================================"
+echo "1. Add <br> at the end of each paragraph"
+echo "2. Add <br> to every line"
+echo "3. Add <br> to non-empty lines only"
+echo "4. Remove trailing <br> tags"
+echo "5. Remove empty lines"
+echo "6. HTML-escape special characters"
+echo "7. Wrap lines at the command-line character limit"
+echo "0. Exit"
+echo "======================================"
+
+read -r -p "Select an option: " OPTION
+
+case "$OPTION" in
+
+    1)
+        awk '
+        BEGIN { paragraph = "" }
+        /^[[:space:]]*$/ {
+            if (paragraph != "") {
+                printf "%s<br>\n", paragraph
+                paragraph = ""
+            }
+            print ""
+            next
+        }
+        {
+            if (paragraph != "")
+                paragraph = paragraph "\n"
+            paragraph = paragraph $0
+        }
+        END {
+            if (paragraph != "")
+                printf "%s<br>\n", paragraph
+        }
+        ' "$FILE" > "$TMP"
+        ;;
+
+    2)
+        sed 's/$/<br>/' "$FILE" > "$TMP"
+        ;;
+
+    3)
+        awk '{
+            if (length($0) > 0)
+                print $0 "<br>"
+            else
+                print ""
+        }' "$FILE" > "$TMP"
+        ;;
+
+    4)
+        sed 's/<br>[[:space:]]*$//' "$FILE" > "$TMP"
+        ;;
+
+    5)
+        sed '/^[[:space:]]*$/d' "$FILE" > "$TMP"
+        ;;
+
+    6)
+        sed \
+            -e 's/&/\&amp;/g' \
+            -e 's/</\&lt;/g' \
+            -e 's/>/\&gt;/g' \
+            "$FILE" > "$TMP"
+        ;;
+
+    7)
+        if [[ -z "$WRAP_WIDTH" ]]; then
+            echo "Error: Specify the wrapping width on the command line."
+            echo "Usage: $0 filename wrap_width"
+            exit 1
+        fi
+
+        fold -s -w "$WRAP_WIDTH" "$FILE" > "$TMP"
+        ;;
+
+    0)
+        exit 0
+        ;;
+
+    *)
+        echo "Invalid option."
+        exit 1
+        ;;
+esac
+
+STATUS=$?
+
+if [[ $STATUS -eq 0 ]]; then
+    cat "$TMP" > "$FILE" || {
+        echo "Error: Could not update the file."
+        exit 1
+    }
+    echo "File successfully updated: $FILE"
+else
+    echo "Error processing file."
+    exit 1
+fi

@@ -798,6 +798,7 @@ function completeCountry(input) {
         <button id="openYoutubeBtn" style='display:none;' disabled>OPEN YOUTUBE</button>
         <button id='lyricBtn' style='display:none;'>SHOW LYRIC</button>
         <button id="saveBtn" style='background-color:navy;color:white;'>SAVE</button><label><input id="saveSongCheckbox" type="checkbox" style="width:auto">SONG</label>
+        <button id="recordSongBtn" type="button">RECORD RADIO</button>
         <button id="exportBtn">EXPORT PLAYLIST</button>
         <button id="deleteDbBtn">DELETE DB</button><br>
         <button id="repairDbBtn" style="display:none;background:#8b0000;color:navy;">REPAIR DB</button>
@@ -863,6 +864,7 @@ function completeCountry(input) {
     <strong>Now Playing:</strong>
     <span id="nowPlayingText">Nothing</span>
     <div id="metadata">Station metadata: waiting</div>
+    <div id="recordingStatus" role="status" aria-live="polite">Record an accessible MP3 or FLAC radio stream manually.</div>
 </div>
 
 <div id="message">
@@ -870,7 +872,17 @@ function completeCountry(input) {
 </div>
 </div>
 <div id="debug"></div>
-
+<br>
+<div id="local-irc" style="display: block;">
+    <iframe
+        src="https://web.libera.chat/##theLady"
+        title="Libera.Chat — ##theLady"
+        width="100%"
+        height="450"
+        style="border: 0;"
+        loading="lazy">
+    </iframe>
+</div>
 </main>
 
 
@@ -1062,6 +1074,10 @@ const state = {
 };
 
 let metadataController = null;
+let currentStreamTitle = null;
+let songRecording = null;
+let recordingStartupController = null;
+let recordingDownloadUrl = null;
 let youtubePlayer = null;
 let youtubeApiPromise = null;
 
@@ -1254,6 +1270,10 @@ let secondaryNoAudioTimer = null;
 let secondaryNoAudioGeneration = 0;
 let primaryNoAudioTimer = null;
 let primaryNoAudioGeneration = 0;
+let primaryPlaybackRequested = false;
+let primaryRecovery = null;
+let primaryMediaGeneration = 0;
+let secondaryPlaybackInProgress = false;
 let handlingAudioEnd = false;
 let playAttemptGeneration = 0;
 
@@ -2736,6 +2756,110 @@ function stopPrimaryNoAudioTimer() {
     }
 }
 
+function resetPrimaryRecovery() {
+
+    if (primaryRecovery?.timer) {
+        clearTimeout(primaryRecovery.timer);
+    }
+
+    primaryRecovery = null;
+}
+
+
+function recoverPrimaryAudio() {
+
+    if (
+        !primaryPlaybackRequested ||
+        state.awaitingUserPlay ||
+        secondaryPlaybackInProgress ||
+        activeSecondaryPlaylist ||
+        !["db", "csv", "stream"].includes(state.sourceType) ||
+        state.series.length < 2 ||
+        !Number.isInteger(state.index) ||
+        !state.series[state.index]
+    ) {
+        return false;
+    }
+
+    if (!primaryRecovery || primaryRecovery.records !== state.series) {
+        resetPrimaryRecovery();
+        primaryRecovery = {
+            records: state.series,
+            failed: new Set(),
+            timer: null
+        };
+    }
+
+    const recovery = primaryRecovery;
+
+    if (recovery.failed.has(state.index)) {
+        return true;
+    }
+
+    recovery.failed.add(state.index);
+    stopPrimaryNoAudioTimer();
+
+    recovery.timer = setTimeout(async () => {
+        recovery.timer = null;
+
+        if (primaryRecovery !== recovery || state.series !== recovery.records) {
+            return;
+        }
+
+        let nextIndex = state.index;
+
+        do {
+            nextIndex = (nextIndex + 1) % recovery.records.length;
+
+            if (recovery.failed.has(nextIndex)) {
+                continue;
+            }
+
+            if (isBlockedRemoteHTTP(recovery.records[nextIndex].urlFileName)) {
+                recovery.failed.add(nextIndex);
+                continue;
+            }
+
+            state.index = nextIndex;
+            state.previousUrl = recovery.records[nextIndex].urlFileName;
+            state.playing = false;
+            state.paused = false;
+
+            message(
+                `Item unavailable; trying item ${nextIndex + 1} of ${recovery.records.length}.`,
+                "info"
+            );
+
+            try {
+                await playRecord(recovery.records[nextIndex]);
+            }
+            catch (error) {
+                if (primaryRecovery !== recovery) {
+                    return;
+                }
+
+                console.error("Playlist item playback failed:", error);
+                message(`Playlist item playback failed:\n${error.message}`, "error");
+                recoverPrimaryAudio();
+            }
+
+            return;
+        } while (nextIndex !== state.index);
+
+        resetPrimaryRecovery();
+        primaryPlaybackRequested = false;
+        state.playing = false;
+        state.paused = false;
+        message(
+            "No playable item was found in the playlist. Check the links or press PLAY to retry.",
+            "error"
+        );
+        updateDebug();
+    }, 0);
+
+    return true;
+}
+
 
 function startPrimaryNoAudioTimer() {
 
@@ -3352,6 +3476,7 @@ async function loadYouTubeRecordV4(
                                             YT.PlayerState.PLAYING
                                         ) {
 
+                                            resetPrimaryRecovery();
                                             state.playing =
                                                 true;
 
@@ -4233,7 +4358,421 @@ function updateSourceType(record) {
    METADATA
    ========================================================= */
 
+const recordSongBtn = document.getElementById("recordSongBtn");
+const recordingStatus = document.getElementById("recordingStatus");
+const RECORDING_CHUNK_BYTES = 1024 * 1024;
+const RECORDING_RAM_LIMIT = 64 * 1024 * 1024;
+const RECORDING_MAX_BYTES = 256 * 1024 * 1024;
+let recordingDatabasePromise = null;
+let unsavedRecording = null;
+
+function openRecordingDatabase() {
+    if (!recordingDatabasePromise) {
+        recordingDatabasePromise = new Promise((resolve, reject) => {
+            const request = indexedDB.open("Mary_Radio_Recordings", 1);
+            let blocked = false;
+            request.onupgradeneeded = () => {
+                request.result.createObjectStore("chunks", { keyPath: ["id", "sequence"] });
+            };
+            request.onsuccess = () => {
+                const database = request.result;
+                if (blocked) {
+                    database.close();
+                    return;
+                }
+                database.onversionchange = () => {
+                    database.close();
+                    recordingDatabasePromise = null;
+                };
+                resolve(database);
+            };
+            request.onerror = () => reject(request.error || new Error("Cannot open recording storage."));
+            request.onblocked = () => {
+                blocked = true;
+                reject(new Error("Recording storage is blocked by another tab."));
+            };
+        }).catch(error => {
+            recordingDatabasePromise = null;
+            throw error;
+        });
+    }
+    return recordingDatabasePromise;
+}
+
+function recordingTransaction(database, mode, action) {
+    return new Promise((resolve, reject) => {
+        const transaction = database.transaction("chunks", mode);
+        const request = action(transaction.objectStore("chunks"));
+        transaction.oncomplete = () => resolve(request.result);
+        transaction.onabort = () => reject(request.error || transaction.error || new Error("Recording storage transaction failed."));
+    });
+}
+
+function recordingRange(recording) {
+    return IDBKeyRange.bound([recording.id, 0], [recording.id, Number.MAX_SAFE_INTEGER]);
+}
+
+async function writeRecordingChunk(recording) {
+    if (!recording.bufferSize) return;
+    const blob = new Blob(recording.buffer, { type: recording.mime });
+    const written = recording.buffer.length;
+    const size = recording.bufferSize;
+    await recordingTransaction(recording.database, "readwrite", store =>
+        store.put({ id: recording.id, sequence: recording.sequence, data: blob })
+    );
+    recording.sequence++;
+    recording.buffer.splice(0, written);
+    recording.bufferSize -= size;
+}
+
+function id3Synchsafe(value) {
+    return new Uint8Array([
+        (value >>> 21) & 127, (value >>> 14) & 127,
+        (value >>> 7) & 127, value & 127
+    ]);
+}
+
+function makeSongId3(artist, song) {
+    const encoder = new TextEncoder();
+    const frames = [["TPE1", artist], ["TIT2", song]].map(([id, value]) => {
+        const text = encoder.encode(value);
+        const frame = new Uint8Array(11 + text.length);
+        frame.set(encoder.encode(id));
+        frame.set(id3Synchsafe(text.length + 1), 4);
+        frame[10] = 3;
+        frame.set(text, 11);
+        return frame;
+    });
+    const size = frames.reduce((total, frame) => total + frame.length, 0);
+    const header = new Uint8Array([73, 68, 51, 4, 0, 0, 0, 0, 0, 0]);
+    header.set(id3Synchsafe(size), 6);
+    return [header, ...frames];
+}
+
+async function prepareRecordingPart(recording, reason) {
+    if (recording.preparing) return;
+    recording.preparing = true;
+    try {
+        await recording.pending;
+        const chunks = await recordingTransaction(recording.database, "readonly", store =>
+            store.getAll(recordingRange(recording))
+        );
+        const finalPart = songRecording !== recording;
+        const memory = finalPart ? recording.buffer.slice() : [];
+        if (!chunks.length && !memory.length) {
+            if (finalPart) {
+                unsavedRecording = null;
+                recordSongBtn.textContent = "RECORD RADIO";
+                recordingStatus.textContent = `${reason} No audio was captured.`;
+                return;
+            }
+            recordingStatus.textContent = `${reason} No stored part can be cleared. Free browser storage, then click RESUME STORAGE. Recording continues in RAM.`;
+        }
+        else {
+            const artist = "Radio";
+            const song = "Radio recording";
+            const name = `${song} ${recording.label} - part ${recording.part}`
+                .replace(/[\\/:*?"<>|\u0000-\u001f]/g, "_").slice(0, 180);
+            const blob = new Blob(
+                [...(recording.format === "mp3" ? makeSongId3(artist, song) : []),
+                    ...chunks.map(chunk => chunk.data), ...memory],
+                { type: recording.mime }
+            );
+            if (recordingDownloadUrl) URL.revokeObjectURL(recordingDownloadUrl);
+            recordingDownloadUrl = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = recordingDownloadUrl;
+            link.download = `${name}.${recording.extension}`;
+            link.textContent = `Download ${name}`;
+            recordingStatus.replaceChildren(
+                document.createTextNode(`${reason} `), link,
+                document.createTextNode(finalPart
+                    ? " Save the file, then confirm it is saved to clear temporary data."
+                    : " Save the file, then confirm it is saved to clear stored audio and resume storage. Recording continues in RAM (64 MB maximum).")
+            );
+            recording.partReady = true;
+            link.click();
+        }
+        const confirm = document.createElement("button");
+        confirm.type = "button";
+        confirm.textContent = recording.partReady ? "I SAVED THIS PART — CLEAR STORAGE" : "RESUME STORAGE";
+        confirm.addEventListener("click", async () => {
+            confirm.disabled = true;
+            try {
+                if (recording.partReady) {
+                    await recordingTransaction(recording.database, "readwrite", store =>
+                        store.delete(recordingRange(recording))
+                    );
+                    recording.part++;
+                    recording.sequence = 0;
+                    recording.partReady = false;
+                    if (finalPart) {
+                        recording.buffer = [];
+                        recording.bufferSize = 0;
+                    }
+                }
+                if (songRecording === recording) {
+                    recording.pending = writeRecordingChunk(recording);
+                    await recording.pending;
+                    recording.recovering = false;
+                    if (songRecording === recording) {
+                        recordingStatus.textContent = "Recording resumed in browser storage.";
+                    }
+                }
+                else if (recording.bufferSize) {
+                    await prepareRecordingPart(recording, "Recording stopped.");
+                }
+                else {
+                    unsavedRecording = null;
+                    recordSongBtn.textContent = "RECORD RADIO";
+                    recordingStatus.textContent = "Recording saved.";
+                }
+            }
+            catch (error) {
+                console.error("Could not resume recording storage:", error);
+                recording.recovering = true;
+                recording.pending = Promise.resolve();
+                recordingStatus.append(document.createTextNode(` Storage error: ${error.message}. Try again after freeing space.`));
+                confirm.disabled = false;
+            }
+        });
+        recordingStatus.append(document.createTextNode(" "), confirm);
+    }
+    catch (error) {
+        console.error("Could not prepare recording part:", error);
+        recordingStatus.textContent = `Could not prepare recording part: ${error.message}. Click RETRY SAVE RECORDING.`;
+        if (songRecording === recording) {
+            songRecording = null;
+            recording.controller.abort();
+        }
+        unsavedRecording = recording;
+        recordSongBtn.textContent = "RETRY SAVE RECORDING";
+    }
+    finally {
+        recording.preparing = false;
+    }
+}
+
+function finishSongRecording(reason = "Recording stopped.", retry = false) {
+    const recording = retry ? unsavedRecording : songRecording;
+    if (!recording) return;
+    if (!retry) {
+        songRecording = null;
+        recording.controller.abort();
+    }
+    unsavedRecording = recording;
+    recordSongBtn.disabled = false;
+    recordSongBtn.textContent = "RETRY SAVE RECORDING";
+    if (recording.partReady || recording.preparing) {
+        recordingStatus.append(document.createTextNode(` ${reason} Save the current part first; remaining audio will follow.`));
+        return;
+    }
+    prepareRecordingPart(recording, reason);
+}
+
+async function recordStreamBytes(bytes) {
+    if (!songRecording || !bytes.length) return;
+    const recording = songRecording;
+    const available = Math.min(
+        RECORDING_RAM_LIMIT - recording.bufferSize,
+        recording.limit - recording.total
+    );
+    const captured = bytes.slice(0, available);
+    if (captured.length) {
+        recording.buffer.push(captured);
+        recording.bufferSize += captured.length;
+        recording.total += captured.length;
+    }
+    if (recording.total >= recording.limit) {
+        finishSongRecording("Recording stopped at the browser storage limit. Save the file and clear temporary storage before recording again.");
+        return;
+    }
+    if (captured.length < bytes.length || recording.bufferSize === RECORDING_RAM_LIMIT) {
+        finishSongRecording("Recording stopped because the 64 MB RAM buffer is full. Audio after the limit was not captured.");
+        return;
+    }
+    if (!recording.recovering && recording.bufferSize >= RECORDING_CHUNK_BYTES) {
+        recording.pending = writeRecordingChunk(recording);
+        try {
+            await recording.pending;
+        }
+        catch (error) {
+            console.error("Could not store recording audio:", error);
+            recording.pending = Promise.resolve();
+            if (songRecording !== recording) return;
+            finishSongRecording(`Recording stopped because storage failed: ${error.message}. Save the file and clear temporary storage before recording again.`);
+        }
+    }
+}
+
+async function recordingStorageLimit() {
+    if (!navigator.storage || !navigator.storage.estimate) return RECORDING_MAX_BYTES;
+    const estimate = await navigator.storage.estimate();
+    if (!Number.isFinite(estimate.quota) || !Number.isFinite(estimate.usage)) {
+        return RECORDING_MAX_BYTES;
+    }
+    const available = Math.max(0, estimate.quota - estimate.usage);
+    const limit = Math.min(RECORDING_MAX_BYTES, Math.floor(available / 4));
+    if (limit < RECORDING_CHUNK_BYTES) {
+        throw new Error("Not enough browser storage; free space before recording");
+    }
+    return limit;
+}
+
+async function readRecordingHeader(reader, contentType) {
+    const mp3 = ["audio/mpeg", "audio/mp3", "audio/x-mpeg", "audio/x-mp3"];
+    if (mp3.includes(contentType)) {
+        return { format: "mp3", mime: "audio/mpeg", extension: "mp3", initial: null };
+    }
+    const native = ["audio/flac", "audio/x-flac", "application/flac", "application/x-flac"];
+    const ogg = ["audio/ogg", "application/ogg", "audio/ogg; codecs=flac"];
+    if (!native.includes(contentType) && !ogg.includes(contentType)) {
+        throw new Error(`Unsupported stream format: ${contentType || "missing content type"}; MP3 or FLAC is required`);
+    }
+    let data = new Uint8Array(0);
+    while (true) {
+        const result = await reader.read();
+        if (result.done) throw new Error("The FLAC stream ended before its header was received");
+        const combined = new Uint8Array(data.length + result.value.length);
+        combined.set(data);
+        combined.set(result.value, data.length);
+        data = combined;
+        if (data.length < 4) continue;
+        const magic = String.fromCharCode(...data.subarray(0, 4));
+        if (magic === "fLaC" && native.includes(contentType)) {
+            if (data.length < 42) continue;
+            if ((data[4] & 127) !== 0 || data[5] !== 0 || data[6] !== 0 || data[7] !== 34) {
+                throw new Error("The FLAC stream has an invalid STREAMINFO header");
+            }
+            return { format: "flac", mime: "audio/flac", extension: "flac", initial: data };
+        }
+        if (magic === "OggS" && ogg.includes(contentType)) {
+            if (data.length < 27) continue;
+            const segments = data[26];
+            const offset = 27 + segments;
+            if (data.length < offset + 5) continue;
+            if (!(data[5] & 2) || !segments || data[27] < 5 ||
+                data[offset] !== 127 || String.fromCharCode(...data.subarray(offset + 1, offset + 5)) !== "FLAC") {
+                throw new Error("The Ogg stream is not FLAC or did not begin with its identification header");
+            }
+            return { format: "flac", mime: "audio/ogg", extension: "ogg", initial: data };
+        }
+        throw new Error("The FLAC stream did not begin with a supported file header");
+    }
+}
+
+async function captureRadioStream(recording, reader) {
+    try {
+        while (songRecording === recording) {
+            const result = await reader.read();
+            if (songRecording !== recording) break;
+            if (result.done) {
+                finishSongRecording("Recording stopped because the radio stream ended.");
+                break;
+            }
+            await recordStreamBytes(result.value);
+        }
+    }
+    catch (error) {
+        if (songRecording === recording) {
+            console.error("Radio recording stream failed:", error);
+            finishSongRecording(`Recording stopped because the radio stream failed: ${error.message}.`);
+        }
+    }
+    finally {
+        reader.releaseLock();
+    }
+}
+
+recordSongBtn.addEventListener("click", async () => {
+    if (unsavedRecording) {
+        finishSongRecording("Retrying recording download.", true);
+        return;
+    }
+    if (songRecording) {
+        finishSongRecording();
+        return;
+    }
+
+    const url = state.currentUrl;
+    if (audio.paused || !isHTTP(url) || isYouTube(url)) {
+        const explanation = "Recording did not start: play a direct MP3 or FLAC radio stream first. YouTube is not supported.";
+        recordingStatus.textContent = explanation;
+        message(explanation, "error");
+        return;
+    }
+
+    const controller = new AbortController();
+    recordingStartupController = controller;
+    recordSongBtn.disabled = true;
+    recordingStatus.textContent = "Connecting to recording stream...";
+    try {
+        const database = await openRecordingDatabase();
+        const limit = await recordingStorageLimit();
+        if (controller.signal.aborted) return;
+        const response = await fetch(url, { signal: controller.signal });
+        if (!response.ok) throw new Error(`Stream HTTP error ${response.status}`);
+        const contentType = (response.headers.get("content-type") || "")
+            .split(";")[0].trim().toLowerCase();
+        if (!response.body) throw new Error("The browser cannot read this stream.");
+        const reader = response.body.getReader();
+        const format = await readRecordingHeader(reader, contentType);
+        if (controller.signal.aborted || state.currentUrl !== url || audio.paused) {
+            controller.abort();
+            recordingStatus.textContent = "Recording not started: playback or station changed.";
+            return;
+        }
+        if (response.headers.has("icy-metaint")) {
+            throw new Error("The station sent ICY metadata in the audio stream without being asked; this cannot be saved as MP3.");
+        }
+        const random = new Uint32Array(4);
+        crypto.getRandomValues(random);
+        songRecording = {
+            controller,
+            ...format,
+            limit,
+            total: 0,
+            label: new Date().toISOString().replace(/[:.]/g, "-"),
+            id: Array.from(random, value => value.toString(16).padStart(8, "0")).join(""),
+            database,
+            sequence: 0,
+            part: 1,
+            buffer: [],
+            bufferSize: 0,
+            pending: Promise.resolve(),
+            recovering: false,
+            preparing: false,
+            partReady: false
+        };
+        recordSongBtn.textContent = "STOP AND SAVE RECORDING";
+        recordingStatus.textContent =
+            `Recording radio. Press STOP AND SAVE RECORDING to finish. Recording stops at ${Math.floor(limit / 1024 / 1024)} MB and requires clearing temporary storage.`;
+        const recording = songRecording;
+        if (format.initial) await recordStreamBytes(format.initial);
+        if (songRecording === recording) captureRadioStream(recording, reader);
+        else reader.releaseLock();
+    }
+    catch (error) {
+        if (controller.signal.aborted) return;
+        controller.abort();
+        console.error("Could not start radio recording:", error);
+        recordingStatus.textContent = `Could not start recording: ${error.message}. The station must allow browser access and HTTPS pages cannot fetch HTTP streams.`;
+        message(recordingStatus.textContent, "error");
+    }
+    finally {
+        if (recordingStartupController === controller) recordingStartupController = null;
+        recordSongBtn.disabled = false;
+    }
+});
+
 function stopMetadataMonitor() {
+
+    if (recordingStartupController) {
+        recordingStartupController.abort();
+        recordingStatus.textContent = "Recording not started: playback or station changed.";
+    }
+    finishSongRecording("Recording stopped because the station or playback changed.");
+    currentStreamTitle = null;
 
     if (metadataController) {
 
@@ -4251,6 +4790,12 @@ function updateStreamTitle(text) {
         text.match(
             /StreamTitle='([^']*)'/i
         );
+
+    if (match && !match[1].trim()) {
+        currentStreamTitle = null;
+        metadataText.textContent = "Station metadata: no current song";
+        return;
+    }
 
     if (
         match &&
@@ -4283,6 +4828,8 @@ function updateStreamTitle(text) {
                     )
                     .trim()
                 : streamTitle;
+
+        currentStreamTitle = { streamTitle, artist, song };
 
         author.value =
             artist;
@@ -4350,6 +4897,8 @@ async function monitorMetadata(url) {
                 }
             );
 
+        if (signal.aborted) return;
+
         if (!response.ok) {
 
             throw new Error(
@@ -4373,7 +4922,7 @@ async function monitorMetadata(url) {
                 : knownMetadataInterval(url);
 
         if (
-            !interval ||
+            !Number.isSafeInteger(interval) || interval <= 0 ||
             !response.body
         ) {
 
@@ -4404,6 +4953,8 @@ async function monitorMetadata(url) {
 
             const result =
                 await reader.read();
+
+            if (signal.aborted) break;
 
             if (result.done) {
                 break;
@@ -4529,6 +5080,15 @@ async function monitorMetadata(url) {
 
             metadataText.textContent =
                 `Station metadata unavailable: ${error.message}`;
+        }
+    }
+    finally {
+        if (metadataController && metadataController.signal === signal) {
+            currentStreamTitle = null;
+            metadataController = null;
+            if (!signal.aborted) {
+                metadataText.textContent += " (metadata connection closed)";
+            }
         }
     }
 }
@@ -4668,6 +5228,9 @@ function prepareRecord(record) {
 
     validate(record);
 
+    stopMetadataMonitor();
+    ++primaryMediaGeneration;
+    primaryPlaybackRequested = false;
     updateNativeAudioVisibility(record);
 
     stopPrimaryNoAudioTimer();
@@ -4729,10 +5292,7 @@ function prepareRecord(record) {
         0
     );
 
-    if (
-        state.sourceType ===
-        "stream"
-    ) {
+    if (isStream(record.urlFileName)) {
 
         showYouTubeAudioControls(false);
 
@@ -4911,7 +5471,13 @@ async function playSecondaryCSVRecord(record) {
             }
             : record;
 
-    await playRecord(playbackRecord, true);
+    secondaryPlaybackInProgress = true;
+    try {
+        await playRecord(playbackRecord, true);
+    }
+    finally {
+        secondaryPlaybackInProgress = false;
+    }
 
     if (savedSecondary) {
         activeSecondaryPlaylist = savedSecondary;
@@ -5101,10 +5667,16 @@ async function playRecord(record, userInitiated = false) {
 
     prepareRecord(record);
 
+    const mediaGeneration = primaryMediaGeneration;
+    primaryPlaybackRequested = true;
+
     try {
         await audio.play();
     }
     catch (error) {
+        if (mediaGeneration !== primaryMediaGeneration) {
+            return false;
+        }
         /*
          * Browsers may reject programmatic autoplay when the page has not
          * received a user gesture.  This is not a failed media source and
@@ -5127,7 +5699,15 @@ async function playRecord(record, userInitiated = false) {
             return false;
         }
 
+        if (audio.error && recoverPrimaryAudio()) {
+            return false;
+        }
+
         throw error;
+    }
+
+    if (mediaGeneration !== primaryMediaGeneration) {
+        return false;
     }
 
     state.playing =
@@ -5429,13 +6009,15 @@ async function loadCSV(
         );
     }
 
-    if (shouldPlay && !state.playing) {
+    if (shouldPlay && !state.playing && !primaryRecovery) {
         state.awaitingUserPlay = true;
         showAutoplayPrompt();
     }
 
     message(
-        state.playing
+        primaryRecovery
+            ? `CSV loaded: ${records.length} records. Trying the next available item.`
+            : state.playing
             ? `CSV loaded: ${records.length} records. Playing.`
             : `CSV loaded: ${records.length} records. Please, CLICK PLAY.`,
         state.playing ? "success" : "info"
@@ -6046,6 +6628,9 @@ function chooseLocalFile() {
 
 async function playAction() {
 
+    ++primaryMediaGeneration;
+    resetPrimaryRecovery();
+
     /* Explicit user PLAY for the currently selected HTTP playlist item. */
     if (
         state.awaitingUserPlay &&
@@ -6491,6 +7076,9 @@ pauseCheckbox.addEventListener(
                 pauseCheckbox.checked
             ) {
 
+                resetPrimaryRecovery();
+                primaryPlaybackRequested = false;
+
                 if (
                     isYouTube(
                         state.currentUrl
@@ -6595,6 +7183,8 @@ stationSelect.addEventListener(
             return;
         }
 
+        ++primaryMediaGeneration;
+        resetPrimaryRecovery();
         ++playAttemptGeneration;
         state.index =
             index;
@@ -7000,6 +7590,9 @@ ${error.message}`,
 
 function stopAction() {
 
+    ++primaryMediaGeneration;
+    resetPrimaryRecovery();
+    primaryPlaybackRequested = false;
     stopMetadataMonitor();
     stopSecondaryNoAudioTimer();
     stopPrimaryNoAudioTimer();
@@ -7767,6 +8360,7 @@ audio.addEventListener(
     "play",
     () => {
 
+        primaryPlaybackRequested = true;
         state.playing =
             true;
 
@@ -7779,11 +8373,23 @@ audio.addEventListener(
     }
 );
 
+audio.addEventListener(
+    "playing",
+    () => {
+        resetPrimaryRecovery();
+    }
+);
+
 
 audio.addEventListener(
     "pause",
     () => {
 
+        if (recordingStartupController) {
+            recordingStartupController.abort();
+            recordingStatus.textContent = "Recording not started: playback was paused or stopped.";
+        }
+        finishSongRecording("Recording stopped because playback was paused or stopped.");
         if (!audio.ended) {
 
             state.playing =
@@ -8259,115 +8865,7 @@ audio.addEventListener(
 
         updateDebug();
 
-        const isPrimaryPlaylist =
-            (state.sourceType === "db" ||
-             state.sourceType === "csv" ||
-             state.sourceType === "stream") &&
-            state.series.length > 1;
-
-        if (isPrimaryPlaylist) {
-
-            if (state.awaitingUserPlay) {
-                stopPrimaryNoAudioTimer();
-                return;
-            }
-
-            startPrimaryNoAudioTimer();
-
-            message(
-                "Primary item unavailable; trying again for 30 seconds.",
-                "info"
-            );
-
-            return;
-        }
-
-        /*
-        =================================================
-        A DEAD STATION MUST NOT STOP A LOADED PLAYLIST.
-
-        Skip to the next record, same wrap-around rule
-        used when a track ends normally.
-        =================================================
-        */
-
-        if (handlingAudioEnd) {
-            return;
-        }
-
-        const isDbOrCsvPlaylist =
-            (
-                state.sourceType === "db" ||
-                state.sourceType === "csv"
-            ) &&
-            state.series.length > 1;
-
-        if (!isDbOrCsvPlaylist) {
-            return;
-        }
-
-        handlingAudioEnd = true;
-
-        try {
-
-            const records =
-                state.sourceType === "db"
-                    ? await getRecords()
-                    : state.series;
-
-            if (!records.length) {
-                return;
-            }
-
-            state.series = records;
-
-            if (
-                !Number.isInteger(state.index) ||
-                state.index < 0 ||
-                state.index >= records.length
-            ) {
-                state.index = 0;
-            }
-
-            state.index =
-                state.index < records.length - 1
-                    ? state.index + 1
-                    : 0;
-
-            const nextRecord =
-                records[state.index];
-
-            fillRecordFields(nextRecord);
-            showRecord(nextRecord);
-            updateSourceType(nextRecord);
-
-            state.currentUrl =
-                nextRecord.urlFileName;
-
-            state.previousUrl =
-                nextRecord.urlFileName;
-
-            updateStationList();
-
-            await playRecord(nextRecord);
-
-            message(
-                `Station unavailable. Playing item ${state.index + 1} of ${records.length}.`,
-                "error"
-            );
-
-        }
-        catch (skipError) {
-
-            console.error(skipError);
-
-        }
-        finally {
-
-            handlingAudioEnd = false;
-
-            updateDebug();
-        }
+        recoverPrimaryAudio();
     }
 );
 
@@ -8631,6 +9129,7 @@ function hideAutoplayPrompt() {
 }
 
 async function playFromAutoplayPrompt() {
+    resetPrimaryRecovery();
     const record = state.series[state.index];
     const attemptGeneration = ++playAttemptGeneration;
 
@@ -8664,6 +9163,9 @@ async function playFromAutoplayPrompt() {
         }
 
         if (result === false) {
+            if (primaryRecovery) {
+                return;
+            }
             state.playing = false;
             state.paused = true;
             state.awaitingUserPlay = false;
@@ -8713,6 +9215,9 @@ const autoplayCancelButton =
 if (autoplayCancelButton) {
     autoplayCancelButton.onclick = function() {
         ++playAttemptGeneration;
+        ++primaryMediaGeneration;
+        resetPrimaryRecovery();
+        primaryPlaybackRequested = false;
         state.awaitingUserPlay = false;
         clearHTTPGuard();
         hideAutoplayPrompt();

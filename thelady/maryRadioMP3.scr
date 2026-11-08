@@ -1,0 +1,86 @@
+#!/bin/bash
+
+INPUT="maryRadioMP3.txt"
+OUTPUT="maryRadioMP3.out_"
+ORIGIN="https://thelady.surge.sh"
+
+get_headers=$(mktemp)
+options_headers=$(mktemp)
+trap 'rm -f "$get_headers" "$options_headers"' EXIT
+
+# Extract a header from the final response, after redirects.
+header_value() {
+    awk -v name="$1" '
+        /^HTTP\// { value = "" }
+        {
+            sub(/\r$/, "")
+            pos = index($0, ":")
+            if (pos && tolower(substr($0, 1, pos - 1)) == name) {
+                value = substr($0, pos + 1)
+                sub(/^[[:space:]]+/, "", value)
+                sub(/[[:space:]]+$/, "", value)
+            }
+        }
+        END { print value }
+    ' "$2"
+}
+
+has_token() {
+    local list=",${1,,},"
+    list="${list//[[:space:]]/}"
+    [[ "$list" == *",$2,"* || "$list" == *",*,"* ]]
+}
+
+: > "$OUTPUT"
+
+while IFS= read -r url || [[ -n "$url" ]]; do
+    url="${url%$'\r'}"
+    [[ "$url" =~ ^https:// ]] || continue
+
+    # Streams normally keep sending audio, so timeout 28 is expected.
+    status=$(curl -sS -L --max-time 5 \
+        -H "Origin: $ORIGIN" \
+        -H "Icy-MetaData: 1" \
+        -D "$get_headers" -o /dev/null \
+        -w '%{http_code}' "$url" 2>/dev/null)
+    result=$?
+
+    if [[ "$result" != 0 && "$result" != 28 ]] || [[ "$status" != 200 ]]; then
+        continue
+    fi
+
+    content_type=$(header_value content-type "$get_headers")
+    interval=$(header_value icy-metaint "$get_headers")
+    allow_origin=$(header_value access-control-allow-origin "$get_headers")
+    expose=$(header_value access-control-expose-headers "$get_headers")
+
+    content_type="${content_type%%;*}"
+    content_type="${content_type,,}"
+
+    [[ "$content_type" == "audio/mpeg" ]] || continue
+    [[ "$interval" =~ ^[0-9]+$ && "$interval" != 0 ]] || continue
+    [[ "$allow_origin" == "*" || "$allow_origin" == "$ORIGIN" ]] || continue
+    has_token "$expose" "icy-metaint" || continue
+
+    # Test the browser's preflight for the custom Icy-MetaData header.
+    options_status=$(curl -sS -L --max-time 5 -X OPTIONS \
+        -H "Origin: $ORIGIN" \
+        -H "Access-Control-Request-Method: GET" \
+        -H "Access-Control-Request-Headers: icy-metadata" \
+        -D "$options_headers" -o /dev/null \
+        -w '%{http_code}' "$url" 2>/dev/null) || continue
+
+    [[ "$options_status" =~ ^2[0-9][0-9]$ ]] || continue
+
+    options_origin=$(header_value access-control-allow-origin "$options_headers")
+    methods=$(header_value access-control-allow-methods "$options_headers")
+    allowed_headers=$(header_value access-control-allow-headers "$options_headers")
+
+    [[ "$options_origin" == "*" || "$options_origin" == "$ORIGIN" ]] || continue
+    has_token "$methods" "get" || continue
+    has_token "$allowed_headers" "icy-metadata" || continue
+
+    printf '%s\n' "$url" | tee -a "$OUTPUT"
+done < "$INPUT"
+
+echo "Candidate stations saved in $OUTPUT"

@@ -30,6 +30,28 @@ It plays:
 
 Playlists can be passed in the URL: `music.html?source=<url-or-path>`.
 
+**RECORD RADIO** records an MP3, native FLAC, or Ogg FLAC radio stream,
+including across song changes.
+Click **STOP AND SAVE RECORDING** to download it, then confirm the download
+to clear its temporary storage. Files have generic names and do not require
+ICY song metadata. The stream must declare an appropriate content type and allow the
+browser to fetch it through CORS. An HTTPS page also cannot fetch an HTTP
+stream. Playback can work even when these requirements do not. Recording
+uses a separate stream connection, so its audio can differ from what is
+currently heard. Chunks are temporarily stored in the separate
+`Mary_Radio_Recordings` IndexedDB database instead of localStorage; available
+capacity depends on the browser and disk quota. Each recording stops at the
+smaller of 256 MiB or one quarter of estimated available browser storage (or
+256 MiB when the estimate is unavailable), and must be saved and cleared
+before another recording begins. Recording also stops when playback or the
+recording connection ends or storage fills earlier. Click **I SAVED THIS
+PART — CLEAR STORAGE** only after confirming the download succeeded.
+If preparing a file fails, use **RETRY SAVE RECORDING**. An unexpected page
+closure may leave temporary chunks behind and loses audio held in RAM;
+temporary chunks can be removed by clearing this site's browser storage.
+YouTube and other formats are not supported. Only record material you are
+permitted to save.
+
 ---
 
 ## 3. Repository layout
