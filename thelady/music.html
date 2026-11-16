@@ -601,16 +601,12 @@ main.container {
                 </div> <!--https://diaspora.psyco.fr/uploads/images/2353330d16f643e206ed.webp-->
             </a>
         </div>
+                    <span style='color:#BF9903;padding-left:23px;'><b>Our Lady Of The Light</b></span>
+        <div style="width:100%;text-align:center;"><img src="img/divider.png" style="width:90%;"></div><br>
 <div>
 
+<div>
 
-    <div id='shiftCol1' style='display:none'>
-    <h1 id='prose' style='width:100%;text-align:center;cursor:pointer;color:red;font-size:20px;padding-right:100px;'  onclick='toggleShifts()'>
-    <span style="color: red; font-weight: bold; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);"> Prose ▶ </span><i style='opacity: 0.3;'>Lyric</i></h1>
-
-        <div style='padding-left:10px;color:maroon;'>
-            <b>The Myistici Corporis Christi</b>  </br>
-                <span style='color:navy;padding-left:10px;'><b>Our Lady Of The Light</b>:<b style='color:#BF9903;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/christlight.csv'; loadAction();"> Christ Light</b></span><br>
  <a href="txt/countries.txt" target="_blank" style="color:navy; margin-left:12px;">Link to view the list of countries</a><br>
 <input type="button" style="color:navy;margin: 0 0 10px 10px; padding:5px 0 5px 0;border-radius: 4px; cursor: pointer;width:50px;" value="Play" onclick="document.getElementById('urlFileName').value='csv/'+document.getElementById('country').value+'.csv'; loadAction();">
 
@@ -624,142 +620,85 @@ main.container {
     id="cflag"
     src="https://raw.githubusercontent.com/pere000/myImgs/refs/heads/main/images/CanaryIslands.png"
     alt="Not yet implemented"
-    style="padding-left:10px;width:95%;"
->
+    style="padding-left:10px;width:95%;">
+    <BR>
+    <span style="padding-left:10px;font-weight:bold;color:maroon;">Note:</span>Only China, India, ... actualized.<br><br>
 
-<script>
+    <script>
+    const flagBaseURL =
+        "https://raw.githubusercontent.com/hampusborgos/country-flags/c09927e63705529bbf59ca6684cd9b23225dddad/svg/";
 
+    let countries = [];
 
-const flagBaseURL =
-    "https://raw.githubusercontent.com/hampusborgos/country-flags/c09927e63705529bbf59ca6684cd9b23225dddad/svg/";
+    fetch("csv/countries.csv")
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Cannot load countries.csv");
+            }
+            return response.text();
+        })
+        .then(csv => {
+            countries = csv
+                .split(/\r?\n/)
+                .map(line => {
+                    const fields = line.split("|");
 
-let countries = [];
+                    return {
+                        name: (fields[0] || "").trim(),
+                        code: (fields[1] || "").trim()
+                    };
+                })
+                .filter(country => country.name && country.code);
+        })
+        .catch(error => console.error(error));
 
-fetch("csv/countries.csv")
-    .then(response => {
-        if (!response.ok) {
-            throw new Error("Cannot load countries.csv");
+    function updateCountryFlag(countryCode) {
+        const flag = document.getElementById("cflag");
+
+        if (!flag) return;
+
+        if (!countryCode) {
+            flag.removeAttribute("src");
+            return;
         }
-        return response.text();
-    })
-    .then(csv => {
-        countries = csv
-            .split(/\r?\n/)
-            .map(line => {
-                const fields = line.split("|");
 
-                return {
-                    name: (fields[0] || "").trim(),
-                    code: (fields[1] || "").trim()
-                };
-            })
-            .filter(country => country.name && country.code);
-    })
-    .catch(error => console.error(error));
+        flag.onerror = function () {
+            this.onerror = null;
+            this.removeAttribute("src");
+            this.alt = "Flag not available";
+        };
 
-function updateCountryFlag(countryCode) {
-    const flag = document.getElementById("cflag");
-
-    if (!flag) return;
-
-    if (!countryCode) {
-        flag.removeAttribute("src");
-        return;
+        flag.src = flagBaseURL + countryCode.toLowerCase() + ".svg";
+        flag.alt = "Flag of " + countryCode.toUpperCase();
     }
 
-    flag.onerror = function () {
-        this.onerror = null;
-        this.removeAttribute("src");
-        this.alt = "Flag not available";
-    };
+    function completeCountry(input) {
+        const start = input.selectionStart;
+        const end = input.selectionEnd;
+        let typed = input.value;
 
-    flag.src = flagBaseURL + countryCode.toLowerCase() + ".svg";
-    flag.alt = "Flag of " + countryCode.toUpperCase();
-}
+        // Ignore the selected autocomplete suffix.
+        if (start !== end) {
+            typed = input.value.slice(0, start);
+        }
 
-function completeCountry(input) {
-    const start = input.selectionStart;
-    const end = input.selectionEnd;
-    let typed = input.value;
+        if (!typed || !countries.length) return;
 
-    // Ignore the selected autocomplete suffix.
-    if (start !== end) {
-        typed = input.value.slice(0, start);
+        const match = countries.find(country =>
+            country.name.toLowerCase().startsWith(typed.toLowerCase())
+        );
+
+        if (!match) return;
+
+        input.value = match.name;
+        input.setSelectionRange(typed.length, match.name.length);
+
+        updateCountryFlag(match.code);
     }
+    </script>
 
-    if (!typed || !countries.length) return;
-
-    const match = countries.find(country =>
-        country.name.toLowerCase().startsWith(typed.toLowerCase())
-    );
-
-    if (!match) return;
-
-    input.value = match.name;
-    input.setSelectionRange(typed.length, match.name.length);
-
-    updateCountryFlag(match.code);
-}
-
-                                    </script>
-
-                <br>
-
-
-                <span style='color:navy;padding-left:10px;'><b>Pio XII</b>:<b style='color:#BF9903;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/pioxii.csv'; loadAction();"> pioxii.csv</b></span><br>
-
-                 <span style='color:navy;padding-left:10px;'><b>TACE Ontology</b>:<b style='color:#BF9903;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/taceDocs.csv'; loadAction();"> Philosophy, Semantic, Axioms, ...</b></span><br>
-
-                 <span style='color:navy;padding-left:10px;'><b>TACE Mystic</b>:<b style='color:#BF9903;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/mystic.csv'; loadAction();"> Mystical Mystery Journey</b></span>
-
-        </div><br>
-
-        <div style='padding-left:10px;color:maroon;'>
-            <b>Neuroscience, Consciousness, and Worlds</b>:</br>
-                <span style='color:navy;padding-left:10px;'><b>Neuropsyche</b>:<b style='color:#BF9903;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/neuropsyche.csv'; loadAction();"> neuropsyche.csv</b></span><br>
-
-                <span style='color:navy;padding-left:10px;'><b>TACE</b>:<b style='color:#BF9903;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/tace.csv'; loadAction();"> tace.csv</b></span><br>
-                <span style='color:navy;padding-left:10px;'><b>Psychedelics</b>:<b style='color:#BF9903;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/dmt.csv'; loadAction();"> dmt.csv</b></span><br>
-                <span style='color:navy;padding-left:10px;'><b>Articles</b>:<b style='color:#BF9903;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/medium.csv'; loadAction();"> medium.csv</b></span><br>
-            <br>
-
-            <b>Friends</b>:</br>
-                <span style='color:navy;padding-left:10px;'><b>A. Gallimore (CSV)</b>:<b style='color:#BF9903;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/gallimore0.csv'; loadAction();"> gallimore0.csv</b></span>
-            <br><br>
-
-            <!--Downloads:<br>
-                <a href='csv/musicHeart.zip' target='_blank' style='padding-left:10px;color:navy;text-decoration: none;'><u>m</u>usicHeart.zip</a>-->
-        </div>
-    </div>
-
-    <div id='shiftCol2' style='display:block'>
-    <h1 id='lyric' style='width:100%;text-align:center;cursor:pointer;color:red;font-size:20px;padding-right:100px;' onclick='toggleShifts()'><span style="color: red; font-weight: bold; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);"> Lyric ▶ </span><i style='opacity: 0.3;'>Prose</i>
-</b></h1>
-
-        <div style='padding-left:10px;color:navy;'><b>Internet Radio</b>: <b style='color:#cccc33;cursor:pointer;' onclick="document.getElementById('urlFileName').value='m3u/blues_final.m3u';loadAction();">1735 stations</b> 🎶 <b style='color:#cccc33;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/myBlues.csv';loadAction();">myBlues</b><br>
-        <b>YoutTube List</b>:
-            <b style='color:#cccc33;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/mediterranean.csv';loadAction();">Sweet Mediterranean</b><br>
-        <b>Oldies</b>:
-            <b style='color:#cccc33;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/40s50s.csv';loadAction();">40s-50s</b><br>
-        <b>Dean, Sinatra, and others</b>:
-            <b style='color:#cccc33;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/mixed0.csv';loadAction();">Cycling with 40s50s.csv</b><br>
-
-
-        <b>Soundtrack</b>:
-            <b style='color:#cccc33;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/the100.csv';loadAction();">The 100</b><br>
-        <b>Many People</b>:
-            <b style='color:#cccc33;cursor:pointer;' onclick="document.getElementById('urlFileName').value='https://www.youtube.com/watch?v=LAch_ioeUao&list=RDLAch_ioeUao&start_radio=1';loadAction();">On the Streets</b><br>
-        </div>
-        <div style='padding:20px 0 0 10px;color:maroon;'><b>
-            Friends:</br>
-                <span style='padding-left:10px;'><a href='https://diaspora.psyco.fr/people/d20083707bd50132351e00224d868582' target='_blank' style='cursor:pointer;text-decoration: none;'><u>E</u>ric Schaber</a>: <b style='color:#cccc33;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/sinatra0.csv';loadAction();">sinatra@diaspora.psyco.fr</b></span>
-            <br><br>
-
-            <!--Downloads:<br>
-                <a href='csv/musicHeart.zip' target='_blank' style='padding-left:10px;color:navy;text-decoration: none;'><u>m</u>usicHeart.zip</a>-->
-        </b></div>
-    </div>
-
+    <img src="img/the-lady-business-card.png" style="padding-left:10px;width:95%;">
+</div> <br>
 
 
     </aside>
@@ -873,7 +812,9 @@ function completeCountry(input) {
 </div>
 <div id="debug"></div>
 <br>
-<div id="local-irc" style="display: block;">
+<div style="width:100%;text-align:center;padding:10px 0 20px 0;cursor:pointer;color:maroon;font-weight:bold;font-size:25px;"><a href="htm/howToDo.html" target="_blank;" style="">Chat HowToDo</a></div>
+<div id="local-irc" style="display: block;text-align:center;">
+
     <iframe
         src="https://web.libera.chat/##theLady"
         title="Libera.Chat — ##theLady"
@@ -906,19 +847,81 @@ function completeCountry(input) {
                 <div style='padding-left:10px;'>1. The World Heroes of Omaha Beach (~2.400 to 2.500): <br><span style='padding-left:20px;'><b style='color:#cccc33;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/t1Omaha.csv';loadAction();">🎵 Omaha Tribute Playlist (CSV)</b> <img src='img/Flag_of_the_United_States_(DDD-F-416E_specifications).svg.webp' style='margin-left:10px;width:10%;'></div>
                 <div style='padding-left:10px;'>2. The World Heroes of Gold Beach (~1.100): <br><span style='padding-left:20px;'><b style='color:#cccc33;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/t2Gold.csv';loadAction();">🎵 Gold Tribute Playlist (CSV)</b><img src='img/Flag_of_the_United_Kingdom_(1-2).svg.webp' style='margin-left:10px;width:10%;'></div>
                 <div style='padding-left:10px;'>3. The World Heroes of Juno Beach (~961): <br><span style='padding-left:20px;'><b style='color:#cccc33;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/t3Juno.csv';loadAction();">🎵 Juno Tribute Playlist (CSV)</b><img src='img/Flag_of_Canada_(Pantone).svg.webp' style='margin-left:10px;width:10%;'></div>
-                <div style='padding-left:10px;'>4. The World Heroes of Sword Beach (~683): <br><span style='padding-left:20px;'><b style='color:#cccc33;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/t4Sword.csv';loadAction();">🎵 Sword Tribute Playlist (CSV)</b><img src='csv/Flag_of_the_United_Kingdom_(1-2).svg.webp' style='margin-left:10px;width:10%;'></div>
+                <div style='padding-left:10px;'>4. The World Heroes of Sword Beach (~683): <br><span style='padding-left:20px;'><b style='color:#cccc33;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/t4Sword.csv';loadAction();">🎵 Sword Tribute Playlist (CSV)</b><img src='img/Flag_of_the_United_Kingdom_(1-2).svg.webp' style='margin-left:10px;width:10%;'></div>
                 <div style='padding-left:10px;'>5. The World Heroes of Utah Beach (~197): <br><span style='padding-left:20px;'><b style='color:#cccc33;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/t5Utah.csv';loadAction();">🎵 Utah Tribute Playlist (CSV)</b><img src='img/Flag_of_the_United_States_(DDD-F-416E_specifications).svg.webp' style='margin-left:10px;width:10%;'></div>
 
-                <div style='width:100%;text-align:right;padding-right:40px;color:'><i>Courtesy of</i> <a href='https://diaspora.psyco.fr/tags/trondiasporapsycofr_1745558058926' target='_blank' style='color:navy;cursor:pointer;text-decoration: none;'><b>The Lady</b></a></div>
+                <div style='width:100%;text-align:right;padding-right:40px;color:'><i>Courtesy of</i> <a href='https://diaspora.psyco.fr/camo/c06052e9ad7fdb03dd5077f92fab65622a27fa3d/68747470733a2f2f64696173706f72612d707379636f2e73332e616d617a6f6e6177732e636f6d2f75706c6f6164732f696d616765732f62326261613030376434666633303264343031652e77656270' target='_blank' style='color:navy;cursor:pointer;text-decoration: none;'><b>The Lady</b></a></div>
                 <br><br>
-        <br><br>
+
+
+
+    <div id='shiftCol1' style='display:none'>
+    <h1 id='prose' style='width:100%;text-align:center;cursor:pointer;color:red;font-size:20px;padding-right:100px;'  onclick='toggleShifts()'>
+    <span style="color: red; font-weight: bold; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);"> Prose ▶ </span><i style='opacity: 0.3;'>Lyric</i></h1>
+
+        <div style='padding-left:10px;color:maroon;'>
+
+
+                <br>
+
+
+                <span style='color:navy;padding-left:10px;'><b>Pio XII</b>:<b style='color:#BF9903;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/pioxii.csv'; loadAction();"> pioxii.csv</b></span><br>
+
+                 <span style='color:navy;padding-left:10px;'><b>TACE Ontology</b>:<b style='color:#BF9903;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/taceDocs.csv'; loadAction();"> Philosophy, Semantic, Axioms, ...</b></span><br>
+
+                 <span style='color:navy;padding-left:10px;'><b>TACE Mystic</b>:<b style='color:#BF9903;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/mystic.csv'; loadAction();"> Mystical Mystery Journey</b></span>
+
+        </div><br>
+
+        <div style='padding-left:10px;color:maroon;'>
+            <b>Neuroscience, Consciousness, and Worlds</b>:</br>
+                <span style='color:navy;padding-left:10px;'><b>Neuropsyche</b>:<b style='color:#BF9903;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/neuropsyche.csv'; loadAction();"> neuropsyche.csv</b></span><br>
+
+                <span style='color:navy;padding-left:10px;'><b>TACE</b>:<b style='color:#BF9903;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/tace.csv'; loadAction();"> tace.csv</b></span><br>
+                <span style='color:navy;padding-left:10px;'><b>Psychedelics</b>:<b style='color:#BF9903;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/dmt.csv'; loadAction();"> dmt.csv</b></span><br>
+                <span style='color:navy;padding-left:10px;'><b>Articles</b>:<b style='color:#BF9903;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/medium.csv'; loadAction();"> medium.csv</b></span><br>
+            <br>
+
+            <b>Friends</b>:</br>
+                <span style='color:navy;padding-left:10px;'><b>A. Gallimore (CSV)</b>:<b style='color:#BF9903;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/gallimore0.csv'; loadAction();"> gallimore0.csv</b></span>
+            <br><br>
+
+            <!--Downloads:<br>
+                <a href='csv/musicHeart.zip' target='_blank' style='padding-left:10px;color:navy;text-decoration: none;'><u>m</u>usicHeart.zip</a>-->
+        </div>
+    </div>
+
+    <div id='shiftCol2' style='display:block'>
+    <h1 id='lyric' style='width:100%;text-align:center;cursor:pointer;color:red;font-size:20px;padding-right:100px;' onclick='toggleShifts()'><span style="color: red; font-weight: bold; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);"> Lyric ▶ </span><i style='opacity: 0.3;'>Prose</i>
+</b></h1>
+
+        <div style='padding-left:10px;color:navy;'><b>Internet Radio</b>: <b style='color:#cccc33;cursor:pointer;' onclick="document.getElementById('urlFileName').value='m3u/blues_final.m3u';loadAction();">1735 stations</b> 🎶 <b style='color:#cccc33;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/myBlues.csv';loadAction();">myBlues</b><br>
+        <b>YoutTube List</b>:
+            <b style='color:#cccc33;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/mediterranean.csv';loadAction();">Sweet Mediterranean</b><br>
+        <b>Oldies</b>:
+            <b style='color:#cccc33;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/40s50s.csv';loadAction();">40s-50s</b><br>
+        <b>Dean, Sinatra, and others</b>:
+            <b style='color:#cccc33;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/mixed0.csv';loadAction();">Cycling with 40s50s.csv</b><br>
+
+
+        <b>Soundtrack</b>:
+            <b style='color:#cccc33;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/the100.csv';loadAction();">The 100</b><br>
+        <b>Many People</b>:
+            <b style='color:#cccc33;cursor:pointer;' onclick="document.getElementById('urlFileName').value='https://www.youtube.com/watch?v=LAch_ioeUao&list=RDLAch_ioeUao&start_radio=1';loadAction();">On the Streets</b><br>
+        </div>
+        <div style='padding:20px 0 0 10px;color:maroon;'><b>
+            Friends:</br>
+                <span style='padding-left:10px;'><a href='https://diaspora.psyco.fr/people/d20083707bd50132351e00224d868582' target='_blank' style='cursor:pointer;text-decoration: none;'><u>E</u>ric Schaber</a>: <b style='color:#cccc33;cursor:pointer;' onclick="document.getElementById('urlFileName').value='csv/sinatra0.csv';loadAction();">sinatra@diaspora.psyco.fr</b></span>
+            <br><br>
+
+            <!--Downloads:<br>
+                <a href='csv/musicHeart.zip' target='_blank' style='padding-left:10px;color:navy;text-decoration: none;'><u>m</u>usicHeart.zip</a>-->
+        </b></div>
+    </div>
+
+
+
             <b>Notes</b>: Currently under development. Please excuse any inconvenience you may encounter.<br>
-
-
-
-
-
-
 
 </aside>
 
@@ -960,7 +963,7 @@ const DEFAULT_RADIO_RECORD = {
 };
 
 const DEFAULT_PLAYLIST_URL =
-    "./csv/howToUse.csv";
+    "./csv/a01songs.csv";
 
 const AUDIO_EXTENSIONS = [
     ".mp3",
@@ -1270,6 +1273,7 @@ let secondaryNoAudioTimer = null;
 let secondaryNoAudioGeneration = 0;
 let primaryNoAudioTimer = null;
 let primaryNoAudioGeneration = 0;
+let primaryStallTimer = null;
 let primaryPlaybackRequested = false;
 let primaryRecovery = null;
 let primaryMediaGeneration = 0;
@@ -2766,7 +2770,7 @@ function resetPrimaryRecovery() {
 }
 
 
-function recoverPrimaryAudio() {
+function recoverPrimaryAudio(stalled = false) {
 
     if (
         !primaryPlaybackRequested ||
@@ -2786,11 +2790,13 @@ function recoverPrimaryAudio() {
         primaryRecovery = {
             records: state.series,
             failed: new Set(),
+            stalled: false,
             timer: null
         };
     }
 
     const recovery = primaryRecovery;
+    recovery.stalled = recovery.stalled || stalled;
 
     if (recovery.failed.has(state.index)) {
         return true;
@@ -2848,6 +2854,8 @@ function recoverPrimaryAudio() {
 
         resetPrimaryRecovery();
         primaryPlaybackRequested = false;
+        stopMetadataMonitor();
+        audio.pause();
         state.playing = false;
         state.paused = false;
         message(
@@ -2900,6 +2908,81 @@ function startPrimaryNoAudioTimer() {
             );
         });
     }, 30000);
+}
+
+
+function stopPrimaryStallMonitor() {
+
+    if (primaryStallTimer !== null) {
+        clearInterval(primaryStallTimer);
+        primaryStallTimer = null;
+    }
+}
+
+
+function startPrimaryStallMonitor() {
+
+    stopPrimaryStallMonitor();
+
+    const generation = primaryMediaGeneration;
+    const sourceUrl = state.currentUrl;
+    let lastPosition = audio.currentTime;
+    let lastProgressAt = performance.now();
+    let stableProgressAt = null;
+
+    primaryStallTimer = setInterval(() => {
+
+        if (
+            generation !== primaryMediaGeneration ||
+            sourceUrl !== state.currentUrl ||
+            audio.paused ||
+            audio.ended
+        ) {
+            stopPrimaryStallMonitor();
+            return;
+        }
+
+        const now = performance.now();
+        const position = audio.currentTime;
+
+        if (position !== lastPosition) {
+            if (stableProgressAt === null || now - lastProgressAt > 5000) {
+                stableProgressAt = now;
+            }
+            else if (now - stableProgressAt >= 30000 && primaryRecovery?.stalled) {
+                resetPrimaryRecovery();
+            }
+            lastPosition = position;
+            lastProgressAt = now;
+            return;
+        }
+
+        if (
+            !primaryPlaybackRequested ||
+            !autoplayCheckbox.checked ||
+            repeatCheckbox.checked ||
+            state.awaitingUserPlay ||
+            secondaryPlaybackInProgress ||
+            activeSecondaryPlaylist ||
+            state.series.length < 2 ||
+            !Number.isInteger(state.index) ||
+            state.series[state.index]?.urlFileName !== sourceUrl ||
+            !["db", "csv", "stream"].includes(state.sourceType)
+        ) {
+            stableProgressAt = null;
+            lastProgressAt = now;
+            return;
+        }
+
+        if (now - lastProgressAt >= 30000) {
+            stopPrimaryStallMonitor();
+            message(
+                "Playback stalled for 30 seconds; trying the next playlist item.",
+                "error"
+            );
+            recoverPrimaryAudio(true);
+        }
+    }, 1000);
 }
 
 
@@ -3026,7 +3109,7 @@ function startYouTubeWatchdog() {
 
 
 /* Paste your restricted YouTube Data API v3 key here. Empty = API disabled. */
-const YOUTUBE_API_KEY = "AIzaSyAJXgR8chFTn0W4llPCUS-RRRFRxgzebE4";
+const YOUTUBE_API_KEY = "";
 const YOUTUBE_PLAYLIST_CACHE_MS = 24 * 60 * 60 * 1000;
 const YOUTUBE_PLAYLIST_MAX_ITEMS = 200;
 
@@ -5229,6 +5312,7 @@ function prepareRecord(record) {
     validate(record);
 
     stopMetadataMonitor();
+    stopPrimaryStallMonitor();
     ++primaryMediaGeneration;
     primaryPlaybackRequested = false;
     updateNativeAudioVisibility(record);
@@ -7591,6 +7675,7 @@ ${error.message}`,
 function stopAction() {
 
     ++primaryMediaGeneration;
+    stopPrimaryStallMonitor();
     resetPrimaryRecovery();
     primaryPlaybackRequested = false;
     stopMetadataMonitor();
@@ -8368,6 +8453,7 @@ audio.addEventListener(
             false;
 
         stopPrimaryNoAudioTimer();
+        startPrimaryStallMonitor();
 
         updateDebug();
     }
@@ -8376,7 +8462,9 @@ audio.addEventListener(
 audio.addEventListener(
     "playing",
     () => {
-        resetPrimaryRecovery();
+        if (!primaryRecovery?.stalled) {
+            resetPrimaryRecovery();
+        }
     }
 );
 
@@ -8384,6 +8472,10 @@ audio.addEventListener(
 audio.addEventListener(
     "pause",
     () => {
+
+        if (audio.paused) {
+            stopPrimaryStallMonitor();
+        }
 
         if (recordingStartupController) {
             recordingStartupController.abort();
@@ -8420,6 +8512,8 @@ audio.addEventListener(
 audio.addEventListener(
     "ended",
     async () => {
+
+        stopPrimaryStallMonitor();
 
         if (handlingAudioEnd) {
             return;
@@ -8831,6 +8925,7 @@ audio.addEventListener(
     "error",
     async () => {
 
+        stopPrimaryStallMonitor();
         state.playing =
             false;
 

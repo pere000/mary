@@ -30,6 +30,11 @@ It plays:
 
 Playlists can be passed in the URL: `music.html?source=<url-or-path>`.
 
+During native audio playlist playback, AUTOPLAY AFTER LOAD skips to the next
+item if playback makes no progress for 30 seconds, unless REPEAT CURRENT is
+enabled. Paused playback is not skipped. Silent audio that continues playing
+cannot be distinguished from normal playback by this check.
+
 **RECORD RADIO** records an MP3, native FLAC, or Ogg FLAC radio stream,
 including across song changes.
 Click **STOP AND SAVE RECORDING** to download it, then confirm the download
@@ -99,7 +104,7 @@ Details:
 URLs once running: `http://localhost:8080/thelady/music.html` (Python/Docker) or `http://localhost:8000/thelady/music.html` (PHP).
 
 ### Ready-made downloads (`mary.exe`)
-`.github/workflows/release.yml` builds, with PyInstaller, a single-file `mary` program for Windows, Linux and macOS and zips each next to the `thelady` folder (`Mary-windows.zip`, `Mary-linux.zip`, `Mary-macos.zip`). They are attached to a GitHub Release when a tag such as `v1.0` is pushed (`git tag v1.0 && git push origin v1.0`), or built on demand with the workflow's "Run workflow" button. Users unzip and double-click `mary.exe` (Windows) or run `./mary` (Linux/macOS; may need `chmod +x mary`). The program looks for `thelady` **next to itself**. The files are unsigned: Windows SmartScreen ("More info" → "Run anyway") and macOS Gatekeeper (right-click → Open) may warn, and some antivirus tools flag PyInstaller programs. Same options as `mary.py`: `--port N`, `--no-browser`.
+`.github/workflows/release.yml` builds, with PyInstaller, a single-file `mary` program for Windows, Linux and macOS and zips each next to the `thelady` folder (`Mary-windows.zip`, `Mary-linux.zip`, `Mary-macos.zip`). They are attached to a GitHub Release when a tag such as `v1.1` is pushed (`git tag v1.1 && git push origin v1.1`), or built on demand with the workflow's "Run workflow" button. Users unzip and double-click `mary.exe` (Windows) or run `./mary` (Linux/macOS; may need `chmod +x mary`). The program looks for `thelady` **next to itself**. The files are unsigned: Windows SmartScreen ("More info" → "Run anyway") and macOS Gatekeeper (right-click → Open) may warn, and some antivirus tools flag PyInstaller programs. Same options as `mary.py`: `--port N`, `--no-browser`.
 
 ### `mary.py`
 - Serves the repo folder on `127.0.0.1:8080`, redirects `/` to `/thelady/music.html`, opens the browser.
@@ -141,7 +146,7 @@ npx surge . yourDesiredName.surge.sh
 - Names are lowercase letters, digits and hyphens. A name already owned by someone else is refused: choose another.
 - Windows: use cmd; PowerShell may block `npx` through the execution policy.
 - Linux: do not use `sudo` with `npx` (EACCES errors). Fix npm folder permissions or install Node with `nvm`.
-- `.surgeignore` lists what is NOT uploaded (one path per line, leading `/`). It excludes the author's `.scr` scripts, `tace-fetch.php`, `mary.py`, `install.html`, Docker files.
+- `.surgeignore` lists what is NOT uploaded (one path per line, leading `/`). It excludes the author's `.scr` scripts, `tace-fetch.php`, `mary.py`, and Docker files. The guided installer is available at `https://thelady.surge.sh/install.html`.
 - The root `index.html` redirects to `/thelady/music.html`, so `https://yourDesiredName.surge.sh` works.
 - Surge is static: **no PHP**, so the `tace-fetch.php` proxy does not exist there. Cross-origin playlists must allow CORS themselves.
 
@@ -153,11 +158,11 @@ npx surge . yourDesiredName.surge.sh
 
 Docker, standard host:
 ```
-docker build -t perevictor/mary:1.0 .
-docker run -d --name mary -p 8080:80 perevictor/mary:1.0
+docker build -t perevictor/mary:1.1 -t perevictor/mary:latest .
+docker run -d --name mary -p 8080:80 perevictor/mary:1.1
 # open http://localhost:8080/thelady/music.html
 ```
-Push (Docker Hub user `perevictor`): `docker login` then `docker push perevictor/mary:1.0` (also tag `latest`).
+Push (Docker Hub user `perevictor`): `docker login` then `docker push perevictor/mary:1.1` and `docker push perevictor/mary:latest`.
 
 **Podman quirk (author's machine, `docker` = Podman):** the default `pasta` networking crashed, so build with `docker build --network=host ...` and run with `--network=host`. Apache listens on port 80 inside the image; with host networking, change it to 8080 (the author used `sed` on Apache's `Listen`). Podman ignores `HEALTHCHECK` in OCI format. A normal Docker host does not need these workarounds.
 
@@ -230,7 +235,7 @@ Follow them over any general habit of yours. If they conflict with this guide, *
 
 - Create a public GitHub repo (owner `pere000`, name `mary`) so `git clone` works for others. Use a `.gitignore`; do not commit secrets.
 - Typical flow: `git init`, `git add .`, `git commit -m "message"`, `git branch -M main`, `git remote add origin https://github.com/pere000/mary.git`, `git push -u origin main`.
-- Docker Hub image: `perevictor/mary` (not pushed yet at the time of writing).
+- Docker Hub image: [`perevictor/mary:1.1`](https://hub.docker.com/r/perevictor/mary) (also tagged `latest`).
 - Installer page entry point: `install.html?start=1` starts immediately (intended to be opened in a new tab from a future `howToUseThisResource.html` "Install Mary" button).
 
 ---
