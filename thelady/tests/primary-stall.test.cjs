@@ -157,3 +157,7 @@ test("recovery stops after every item stalls", async () => {
     assert.equal(context.audio.paused, true);
     assert.match(messages.at(-1), /No playable item/);
 });
+
+test("YouTube playlist loading does not require the Data API or an API key", () => {
+    assert.doesNotMatch(player, /YOUTUBE_API_KEY|youtube\/v3\/playlistItems|googleapis\.com\/youtube/);
+});

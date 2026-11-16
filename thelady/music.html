@@ -2618,14 +2618,10 @@ function restartYouTubeSource(
 
     if (playlistInfo) {
 
-        youtubePlayer.loadPlaylist(
-            activeSecondaryPlaylist?.apiIds
-                ? youtubePlaylistLoadArgs(index)
-                : {
-                    list: playlistInfo.list,
-                    index
-                }
-        );
+        youtubePlayer.loadPlaylist({
+            list: playlistInfo.list,
+            index
+        });
 
     }
     else {
@@ -3108,120 +3104,6 @@ function startYouTubeWatchdog() {
 }
 
 
-/* Paste your restricted YouTube Data API v3 key here. Empty = API disabled. */
-const YOUTUBE_API_KEY = "";
-const YOUTUBE_PLAYLIST_CACHE_MS = 24 * 60 * 60 * 1000;
-const YOUTUBE_PLAYLIST_MAX_ITEMS = 200;
-
-/* Real playlist order from the YouTube Data API (cached in localStorage).
- * Returns [{id, title, author}] or null on any failure. */
-async function fetchYouTubePlaylistItems(listId) {
-
-    if (!YOUTUBE_API_KEY) {
-        return null;
-    }
-
-    const cacheKey = `TACE_YT_PL_${listId}`;
-
-    try {
-        const cached = JSON.parse(localStorage.getItem(cacheKey) || "null");
-
-        if (cached && Date.now() - cached.time < YOUTUBE_PLAYLIST_CACHE_MS) {
-            return cached.items;
-        }
-    }
-    catch (error) { /* ignore bad cache */ }
-
-    try {
-        const items = [];
-        let pageToken = "";
-
-        while (items.length < YOUTUBE_PLAYLIST_MAX_ITEMS) {
-
-            const url =
-                "https://www.googleapis.com/youtube/v3/playlistItems" +
-                "?part=snippet,status&maxResults=50" +
-                `&playlistId=${encodeURIComponent(listId)}` +
-                `&key=${encodeURIComponent(YOUTUBE_API_KEY)}` +
-                (pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "");
-
-            const response = await fetch(url);
-
-            if (!response.ok) {
-                return null;
-            }
-
-            const data = await response.json();
-
-            for (const item of data.items || []) {
-
-                const snippet = item.snippet || {};
-                const id = snippet.resourceId?.videoId;
-                const privacy = item.status?.privacyStatus;
-
-                if (
-                    !id ||
-                    privacy === "private" ||
-                    snippet.title === "Deleted video" ||
-                    snippet.title === "Private video"
-                ) {
-                    continue;
-                }
-
-                items.push({
-                    id,
-                    title: snippet.title || id,
-                    author: snippet.videoOwnerChannelTitle || "YouTube"
-                });
-            }
-
-            pageToken = data.nextPageToken;
-
-            if (!pageToken) {
-                break;
-            }
-        }
-
-        const result = items.slice(0, YOUTUBE_PLAYLIST_MAX_ITEMS);
-
-        if (!result.length) {
-            return null;
-        }
-
-        try {
-            localStorage.setItem(
-                cacheKey,
-                JSON.stringify({ time: Date.now(), items: result })
-            );
-        }
-        catch (error) { /* storage full or disabled */ }
-
-        return result;
-    }
-    catch (error) {
-        return null;
-    }
-}
-
-
-/* Arguments for loadPlaylist/cuePlaylist: an explicit ID list when the
- * API order is known, otherwise YouTube's own playlist. */
-function youtubePlaylistLoadArgs(index) {
-
-    if (activeSecondaryPlaylist?.apiIds) {
-        return {
-            playlist: activeSecondaryPlaylist.apiIds,
-            index
-        };
-    }
-
-    return {
-        list: activeSecondaryPlaylist?.list,
-        index
-    };
-}
-
-
 async function loadYouTubeSource(
     videoId,
     playlistInfo,
@@ -3230,58 +3112,6 @@ async function loadYouTubeSource(
 
     const loadGeneration =
         ++youtubePlaylistLoadGeneration;
-
-    if (playlistInfo) {
-
-        const apiItems =
-            await fetchYouTubePlaylistItems(playlistInfo.list);
-
-        if (loadGeneration !== youtubePlaylistLoadGeneration) {
-            return;
-        }
-
-        const apiIndex =
-            apiItems ? apiItems.findIndex(item => item.id === videoId) : -1;
-
-        if (apiItems && apiIndex >= 0) {
-
-            const ids = apiItems.map(item => item.id);
-
-            activeSecondaryPlaylist = {
-                kind: "youtube",
-                list: playlistInfo.list,
-                apiIds: ids,
-                index: apiIndex,
-                records: apiItems.map(item => ({
-                    author: csvSafeField(item.author),
-                    title: csvSafeField(item.title),
-                    urlFileName: "",
-                    urlLyric: ""
-                }))
-            };
-
-            try {
-                youtubePlayer.stopVideo();
-            }
-            catch (error) { /* nothing to stop yet */ }
-
-            youtubePlayer[shouldPlay ? "loadPlaylist" : "cuePlaylist"]({
-                playlist: ids,
-                index: apiIndex
-            });
-
-            updateYouTubePlaylist(
-                ids,
-                apiIndex,
-                true,
-                playlistInfo.list
-            );
-
-            activeSecondaryPlaylist.apiIds = ids;
-
-            return;
-        }
-    }
 
     if (!playlistInfo) {
 

@@ -104,7 +104,7 @@ Details:
 URLs once running: `http://localhost:8080/thelady/music.html` (Python/Docker) or `http://localhost:8000/thelady/music.html` (PHP).
 
 ### Ready-made downloads (`mary.exe`)
-`.github/workflows/release.yml` builds, with PyInstaller, a single-file `mary` program for Windows, Linux and macOS and zips each next to the `thelady` folder (`Mary-windows.zip`, `Mary-linux.zip`, `Mary-macos.zip`). They are attached to a GitHub Release when a tag such as `v1.1` is pushed (`git tag v1.1 && git push origin v1.1`), or built on demand with the workflow's "Run workflow" button. Users unzip and double-click `mary.exe` (Windows) or run `./mary` (Linux/macOS; may need `chmod +x mary`). The program looks for `thelady` **next to itself**. The files are unsigned: Windows SmartScreen ("More info" → "Run anyway") and macOS Gatekeeper (right-click → Open) may warn, and some antivirus tools flag PyInstaller programs. Same options as `mary.py`: `--port N`, `--no-browser`.
+`.github/workflows/release.yml` builds, with PyInstaller, a single-file `mary` program for Windows, Linux and macOS and zips each next to the `thelady` folder (`Mary-windows.zip`, `Mary-linux.zip`, `Mary-macos.zip`). They are attached to a GitHub Release when a tag such as `v1.2` is pushed (`git tag v1.2 && git push origin v1.2`), or built on demand with the workflow's "Run workflow" button. Users unzip and double-click `mary.exe` (Windows) or run `./mary` (Linux/macOS; may need `chmod +x mary`). The program looks for `thelady` **next to itself**. The files are unsigned: Windows SmartScreen ("More info" → "Run anyway") and macOS Gatekeeper (right-click → Open) may warn, and some antivirus tools flag PyInstaller programs. Same options as `mary.py`: `--port N`, `--no-browser`.
 
 ### `mary.py`
 - Serves the repo folder on `127.0.0.1:8080`, redirects `/` to `/thelady/music.html`, opens the browser.
@@ -202,12 +202,12 @@ Live-edit the code from the host: add `-v "$PWD/thelady:/var/www/html/thelady:Z"
 - **M3U playlists** live in `thelady/m3u/`.
 - URL parameter: `?source=...` takes **everything after `?source=`** (not `URLSearchParams`), so the source may contain its own `?` and `&`, for example a YouTube playlist URL. The value is treated as data and never executed.
 - `isLocalServer()` is true for hostnames `localhost`, `127.0.0.1`, `::1`. In that case remote playlists go through `thelady/tace-fetch.php`; there is **no direct-fetch fallback**. `isLocalServer()` is defined twice in the file (around lines 1301 and 4921).
-- YouTube: IFrame API (`https://www.youtube.com/iframe_api`) and the Data API v3 `playlistItems` call to get the real playlist order.
+- YouTube: IFrame API (`https://www.youtube.com/iframe_api`); playlists are read from the embedded player, with no YouTube Data API key required.
 
 ### 9.2 Security notes (do not weaken)
 - `tace-fetch.php` (and the Python equivalent in `mary.py`) is a proxy: it must stay local-only. The PHP file checks that Host is localhost, the client IP is loopback/private, and that no `X-Forwarded-For`, `Forwarded` or `X-Real-IP` header is present; `apache.conf` adds an Apache rule too. Never expose it to the internet.
 - `mary.py` blocks private IP targets and unsafe redirects: keep that (SSRF protection).
-- **A YouTube Data API key is hard-coded in `thelady/music.html`** (constant `YOUTUBE_API_KEY`, near line 2775). Anything published on surge.sh or GitHub exposes it. Recommend the owner restrict it in Google Cloud Console (HTTP referrers + YouTube Data API only) or replace it.
+- The app does not use a YouTube Data API key; keep API credentials out of the browser source.
 - Never commit passwords, tokens or `.env` files. Do not suggest `chmod 777`.
 
 ### 9.3 Governance (read before changing the code)
